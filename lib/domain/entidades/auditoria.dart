@@ -48,6 +48,10 @@ class Auditoria {
     required this.observadoDni,
     required this.observadoNombre,
     required this.fecha,
+    this.inicioObservacion,
+    this.finObservacion,
+    this.numeroCamasServicio,
+    this.consentimientoVerbal,
     this.estado = EstadoAuditoria.borrador,
     this.eliminada = false,
     this.sincronizadaEn,
@@ -66,6 +70,10 @@ class Auditoria {
   final String observadoDni;
   final String observadoNombre;
   final DateTime fecha;
+  final DateTime? inicioObservacion;
+  final DateTime? finObservacion;
+  final int? numeroCamasServicio;
+  final bool? consentimientoVerbal;
   final EstadoAuditoria estado;
 
   /// Borrado lógico (*soft delete*): la fila nunca se elimina físicamente
@@ -98,6 +106,7 @@ class Auditoria {
 
   bool get tieneDatos => totalOportunidades > 0;
 
+  
   Auditoria copyWith({
     String? id,
     String? establecimientoId,
@@ -107,6 +116,10 @@ class Auditoria {
     String? observadoDni,
     String? observadoNombre,
     DateTime? fecha,
+    DateTime? inicioObservacion,
+    DateTime? finObservacion,
+    int? numeroCamasServicio,
+    bool? consentimientoVerbal,
     EstadoAuditoria? estado,
     bool? eliminada,
     DateTime? sincronizadaEn,
@@ -115,18 +128,26 @@ class Auditoria {
     return Auditoria(
       id: id ?? this.id,
       establecimientoId: establecimientoId ?? this.establecimientoId,
-      establecimientoNombre: establecimientoNombre ?? this.establecimientoNombre,
+      establecimientoNombre:
+          establecimientoNombre ?? this.establecimientoNombre,
       observadorDni: observadorDni ?? this.observadorDni,
       observadorNombre: observadorNombre ?? this.observadorNombre,
       observadoDni: observadoDni ?? this.observadoDni,
       observadoNombre: observadoNombre ?? this.observadoNombre,
       fecha: fecha ?? this.fecha,
+      inicioObservacion: inicioObservacion ?? this.inicioObservacion,
+      finObservacion: finObservacion ?? this.finObservacion,
+      numeroCamasServicio:
+          numeroCamasServicio ?? this.numeroCamasServicio,
+      consentimientoVerbal:
+          consentimientoVerbal ?? this.consentimientoVerbal,
       estado: estado ?? this.estado,
       eliminada: eliminada ?? this.eliminada,
       sincronizadaEn: sincronizadaEn ?? this.sincronizadaEn,
       oportunidades: oportunidades ?? this.oportunidades,
     );
   }
+
 
   @override
   String toString() =>

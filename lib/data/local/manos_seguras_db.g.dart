@@ -1222,6 +1222,53 @@ class $AuditoriasTable extends Auditorias
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _inicioObservacionMeta = const VerificationMeta(
+    'inicioObservacion',
+  );
+  @override
+  late final GeneratedColumn<DateTime> inicioObservacion =
+      GeneratedColumn<DateTime>(
+        'inicio_observacion',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _finObservacionMeta = const VerificationMeta(
+    'finObservacion',
+  );
+  @override
+  late final GeneratedColumn<DateTime> finObservacion =
+      GeneratedColumn<DateTime>(
+        'fin_observacion',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _numeroCamasServicioMeta =
+      const VerificationMeta('numeroCamasServicio');
+  @override
+  late final GeneratedColumn<int> numeroCamasServicio = GeneratedColumn<int>(
+    'numero_camas_servicio',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _consentimientoVerbalMeta =
+      const VerificationMeta('consentimientoVerbal');
+  @override
+  late final GeneratedColumn<bool> consentimientoVerbal = GeneratedColumn<bool>(
+    'consentimiento_verbal',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("consentimiento_verbal" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _estadoMeta = const VerificationMeta('estado');
   @override
   late final GeneratedColumn<String> estado = GeneratedColumn<String>(
@@ -1294,6 +1341,10 @@ class $AuditoriasTable extends Auditorias
     observadoDni,
     observadoNombre,
     fecha,
+    inicioObservacion,
+    finObservacion,
+    numeroCamasServicio,
+    consentimientoVerbal,
     estado,
     eliminada,
     sincronizadaEn,
@@ -1391,6 +1442,42 @@ class $AuditoriasTable extends Auditorias
     } else if (isInserting) {
       context.missing(_fechaMeta);
     }
+    if (data.containsKey('inicio_observacion')) {
+      context.handle(
+        _inicioObservacionMeta,
+        inicioObservacion.isAcceptableOrUnknown(
+          data['inicio_observacion']!,
+          _inicioObservacionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fin_observacion')) {
+      context.handle(
+        _finObservacionMeta,
+        finObservacion.isAcceptableOrUnknown(
+          data['fin_observacion']!,
+          _finObservacionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('numero_camas_servicio')) {
+      context.handle(
+        _numeroCamasServicioMeta,
+        numeroCamasServicio.isAcceptableOrUnknown(
+          data['numero_camas_servicio']!,
+          _numeroCamasServicioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('consentimiento_verbal')) {
+      context.handle(
+        _consentimientoVerbalMeta,
+        consentimientoVerbal.isAcceptableOrUnknown(
+          data['consentimiento_verbal']!,
+          _consentimientoVerbalMeta,
+        ),
+      );
+    }
     if (data.containsKey('estado')) {
       context.handle(
         _estadoMeta,
@@ -1468,6 +1555,22 @@ class $AuditoriasTable extends Auditorias
         DriftSqlType.dateTime,
         data['${effectivePrefix}fecha'],
       )!,
+      inicioObservacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}inicio_observacion'],
+      ),
+      finObservacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fin_observacion'],
+      ),
+      numeroCamasServicio: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}numero_camas_servicio'],
+      ),
+      consentimientoVerbal: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}consentimiento_verbal'],
+      ),
       estado: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}estado'],
@@ -1510,6 +1613,18 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
   final String observadoNombre;
   final DateTime fecha;
 
+  /// Fecha y hora exactas de inicio de la observación.
+  final DateTime? inicioObservacion;
+
+  /// Fecha y hora exactas de fin de la observación.
+  final DateTime? finObservacion;
+
+  /// Número de camas del servicio observado.
+  final int? numeroCamasServicio;
+
+  /// Consentimiento verbal del personal observado para esta observación.
+  final bool? consentimientoVerbal;
+
   /// 'borrador' | 'finalizada' | 'sincronizada'.
   final String estado;
 
@@ -1529,6 +1644,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     required this.observadoDni,
     required this.observadoNombre,
     required this.fecha,
+    this.inicioObservacion,
+    this.finObservacion,
+    this.numeroCamasServicio,
+    this.consentimientoVerbal,
     required this.estado,
     required this.eliminada,
     this.sincronizadaEn,
@@ -1546,6 +1665,18 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     map['observado_dni'] = Variable<String>(observadoDni);
     map['observado_nombre'] = Variable<String>(observadoNombre);
     map['fecha'] = Variable<DateTime>(fecha);
+    if (!nullToAbsent || inicioObservacion != null) {
+      map['inicio_observacion'] = Variable<DateTime>(inicioObservacion);
+    }
+    if (!nullToAbsent || finObservacion != null) {
+      map['fin_observacion'] = Variable<DateTime>(finObservacion);
+    }
+    if (!nullToAbsent || numeroCamasServicio != null) {
+      map['numero_camas_servicio'] = Variable<int>(numeroCamasServicio);
+    }
+    if (!nullToAbsent || consentimientoVerbal != null) {
+      map['consentimiento_verbal'] = Variable<bool>(consentimientoVerbal);
+    }
     map['estado'] = Variable<String>(estado);
     map['eliminada'] = Variable<bool>(eliminada);
     if (!nullToAbsent || sincronizadaEn != null) {
@@ -1566,6 +1697,18 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       observadoDni: Value(observadoDni),
       observadoNombre: Value(observadoNombre),
       fecha: Value(fecha),
+      inicioObservacion: inicioObservacion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inicioObservacion),
+      finObservacion: finObservacion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finObservacion),
+      numeroCamasServicio: numeroCamasServicio == null && nullToAbsent
+          ? const Value.absent()
+          : Value(numeroCamasServicio),
+      consentimientoVerbal: consentimientoVerbal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(consentimientoVerbal),
       estado: Value(estado),
       eliminada: Value(eliminada),
       sincronizadaEn: sincronizadaEn == null && nullToAbsent
@@ -1592,6 +1735,16 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       observadoDni: serializer.fromJson<String>(json['observadoDni']),
       observadoNombre: serializer.fromJson<String>(json['observadoNombre']),
       fecha: serializer.fromJson<DateTime>(json['fecha']),
+      inicioObservacion: serializer.fromJson<DateTime?>(
+        json['inicioObservacion'],
+      ),
+      finObservacion: serializer.fromJson<DateTime?>(json['finObservacion']),
+      numeroCamasServicio: serializer.fromJson<int?>(
+        json['numeroCamasServicio'],
+      ),
+      consentimientoVerbal: serializer.fromJson<bool?>(
+        json['consentimientoVerbal'],
+      ),
       estado: serializer.fromJson<String>(json['estado']),
       eliminada: serializer.fromJson<bool>(json['eliminada']),
       sincronizadaEn: serializer.fromJson<DateTime?>(json['sincronizadaEn']),
@@ -1611,6 +1764,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       'observadoDni': serializer.toJson<String>(observadoDni),
       'observadoNombre': serializer.toJson<String>(observadoNombre),
       'fecha': serializer.toJson<DateTime>(fecha),
+      'inicioObservacion': serializer.toJson<DateTime?>(inicioObservacion),
+      'finObservacion': serializer.toJson<DateTime?>(finObservacion),
+      'numeroCamasServicio': serializer.toJson<int?>(numeroCamasServicio),
+      'consentimientoVerbal': serializer.toJson<bool?>(consentimientoVerbal),
       'estado': serializer.toJson<String>(estado),
       'eliminada': serializer.toJson<bool>(eliminada),
       'sincronizadaEn': serializer.toJson<DateTime?>(sincronizadaEn),
@@ -1628,6 +1785,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     String? observadoDni,
     String? observadoNombre,
     DateTime? fecha,
+    Value<DateTime?> inicioObservacion = const Value.absent(),
+    Value<DateTime?> finObservacion = const Value.absent(),
+    Value<int?> numeroCamasServicio = const Value.absent(),
+    Value<bool?> consentimientoVerbal = const Value.absent(),
     String? estado,
     bool? eliminada,
     Value<DateTime?> sincronizadaEn = const Value.absent(),
@@ -1642,6 +1803,18 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     observadoDni: observadoDni ?? this.observadoDni,
     observadoNombre: observadoNombre ?? this.observadoNombre,
     fecha: fecha ?? this.fecha,
+    inicioObservacion: inicioObservacion.present
+        ? inicioObservacion.value
+        : this.inicioObservacion,
+    finObservacion: finObservacion.present
+        ? finObservacion.value
+        : this.finObservacion,
+    numeroCamasServicio: numeroCamasServicio.present
+        ? numeroCamasServicio.value
+        : this.numeroCamasServicio,
+    consentimientoVerbal: consentimientoVerbal.present
+        ? consentimientoVerbal.value
+        : this.consentimientoVerbal,
     estado: estado ?? this.estado,
     eliminada: eliminada ?? this.eliminada,
     sincronizadaEn: sincronizadaEn.present
@@ -1672,6 +1845,18 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
           ? data.observadoNombre.value
           : this.observadoNombre,
       fecha: data.fecha.present ? data.fecha.value : this.fecha,
+      inicioObservacion: data.inicioObservacion.present
+          ? data.inicioObservacion.value
+          : this.inicioObservacion,
+      finObservacion: data.finObservacion.present
+          ? data.finObservacion.value
+          : this.finObservacion,
+      numeroCamasServicio: data.numeroCamasServicio.present
+          ? data.numeroCamasServicio.value
+          : this.numeroCamasServicio,
+      consentimientoVerbal: data.consentimientoVerbal.present
+          ? data.consentimientoVerbal.value
+          : this.consentimientoVerbal,
       estado: data.estado.present ? data.estado.value : this.estado,
       eliminada: data.eliminada.present ? data.eliminada.value : this.eliminada,
       sincronizadaEn: data.sincronizadaEn.present
@@ -1695,6 +1880,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
           ..write('observadoDni: $observadoDni, ')
           ..write('observadoNombre: $observadoNombre, ')
           ..write('fecha: $fecha, ')
+          ..write('inicioObservacion: $inicioObservacion, ')
+          ..write('finObservacion: $finObservacion, ')
+          ..write('numeroCamasServicio: $numeroCamasServicio, ')
+          ..write('consentimientoVerbal: $consentimientoVerbal, ')
           ..write('estado: $estado, ')
           ..write('eliminada: $eliminada, ')
           ..write('sincronizadaEn: $sincronizadaEn, ')
@@ -1714,6 +1903,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     observadoDni,
     observadoNombre,
     fecha,
+    inicioObservacion,
+    finObservacion,
+    numeroCamasServicio,
+    consentimientoVerbal,
     estado,
     eliminada,
     sincronizadaEn,
@@ -1732,6 +1925,10 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
           other.observadoDni == this.observadoDni &&
           other.observadoNombre == this.observadoNombre &&
           other.fecha == this.fecha &&
+          other.inicioObservacion == this.inicioObservacion &&
+          other.finObservacion == this.finObservacion &&
+          other.numeroCamasServicio == this.numeroCamasServicio &&
+          other.consentimientoVerbal == this.consentimientoVerbal &&
           other.estado == this.estado &&
           other.eliminada == this.eliminada &&
           other.sincronizadaEn == this.sincronizadaEn &&
@@ -1748,6 +1945,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
   final Value<String> observadoDni;
   final Value<String> observadoNombre;
   final Value<DateTime> fecha;
+  final Value<DateTime?> inicioObservacion;
+  final Value<DateTime?> finObservacion;
+  final Value<int?> numeroCamasServicio;
+  final Value<bool?> consentimientoVerbal;
   final Value<String> estado;
   final Value<bool> eliminada;
   final Value<DateTime?> sincronizadaEn;
@@ -1763,6 +1964,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     this.observadoDni = const Value.absent(),
     this.observadoNombre = const Value.absent(),
     this.fecha = const Value.absent(),
+    this.inicioObservacion = const Value.absent(),
+    this.finObservacion = const Value.absent(),
+    this.numeroCamasServicio = const Value.absent(),
+    this.consentimientoVerbal = const Value.absent(),
     this.estado = const Value.absent(),
     this.eliminada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
@@ -1779,6 +1984,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     required String observadoDni,
     required String observadoNombre,
     required DateTime fecha,
+    this.inicioObservacion = const Value.absent(),
+    this.finObservacion = const Value.absent(),
+    this.numeroCamasServicio = const Value.absent(),
+    this.consentimientoVerbal = const Value.absent(),
     this.estado = const Value.absent(),
     this.eliminada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
@@ -1802,6 +2011,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     Expression<String>? observadoDni,
     Expression<String>? observadoNombre,
     Expression<DateTime>? fecha,
+    Expression<DateTime>? inicioObservacion,
+    Expression<DateTime>? finObservacion,
+    Expression<int>? numeroCamasServicio,
+    Expression<bool>? consentimientoVerbal,
     Expression<String>? estado,
     Expression<bool>? eliminada,
     Expression<DateTime>? sincronizadaEn,
@@ -1819,6 +2032,12 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
       if (observadoDni != null) 'observado_dni': observadoDni,
       if (observadoNombre != null) 'observado_nombre': observadoNombre,
       if (fecha != null) 'fecha': fecha,
+      if (inicioObservacion != null) 'inicio_observacion': inicioObservacion,
+      if (finObservacion != null) 'fin_observacion': finObservacion,
+      if (numeroCamasServicio != null)
+        'numero_camas_servicio': numeroCamasServicio,
+      if (consentimientoVerbal != null)
+        'consentimiento_verbal': consentimientoVerbal,
       if (estado != null) 'estado': estado,
       if (eliminada != null) 'eliminada': eliminada,
       if (sincronizadaEn != null) 'sincronizada_en': sincronizadaEn,
@@ -1837,6 +2056,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     Value<String>? observadoDni,
     Value<String>? observadoNombre,
     Value<DateTime>? fecha,
+    Value<DateTime?>? inicioObservacion,
+    Value<DateTime?>? finObservacion,
+    Value<int?>? numeroCamasServicio,
+    Value<bool?>? consentimientoVerbal,
     Value<String>? estado,
     Value<bool>? eliminada,
     Value<DateTime?>? sincronizadaEn,
@@ -1854,6 +2077,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
       observadoDni: observadoDni ?? this.observadoDni,
       observadoNombre: observadoNombre ?? this.observadoNombre,
       fecha: fecha ?? this.fecha,
+      inicioObservacion: inicioObservacion ?? this.inicioObservacion,
+      finObservacion: finObservacion ?? this.finObservacion,
+      numeroCamasServicio: numeroCamasServicio ?? this.numeroCamasServicio,
+      consentimientoVerbal: consentimientoVerbal ?? this.consentimientoVerbal,
       estado: estado ?? this.estado,
       eliminada: eliminada ?? this.eliminada,
       sincronizadaEn: sincronizadaEn ?? this.sincronizadaEn,
@@ -1892,6 +2119,18 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     if (fecha.present) {
       map['fecha'] = Variable<DateTime>(fecha.value);
     }
+    if (inicioObservacion.present) {
+      map['inicio_observacion'] = Variable<DateTime>(inicioObservacion.value);
+    }
+    if (finObservacion.present) {
+      map['fin_observacion'] = Variable<DateTime>(finObservacion.value);
+    }
+    if (numeroCamasServicio.present) {
+      map['numero_camas_servicio'] = Variable<int>(numeroCamasServicio.value);
+    }
+    if (consentimientoVerbal.present) {
+      map['consentimiento_verbal'] = Variable<bool>(consentimientoVerbal.value);
+    }
     if (estado.present) {
       map['estado'] = Variable<String>(estado.value);
     }
@@ -1924,6 +2163,10 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
           ..write('observadoDni: $observadoDni, ')
           ..write('observadoNombre: $observadoNombre, ')
           ..write('fecha: $fecha, ')
+          ..write('inicioObservacion: $inicioObservacion, ')
+          ..write('finObservacion: $finObservacion, ')
+          ..write('numeroCamasServicio: $numeroCamasServicio, ')
+          ..write('consentimientoVerbal: $consentimientoVerbal, ')
           ..write('estado: $estado, ')
           ..write('eliminada: $eliminada, ')
           ..write('sincronizadaEn: $sincronizadaEn, ')

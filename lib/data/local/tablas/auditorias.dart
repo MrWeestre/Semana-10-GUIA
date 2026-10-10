@@ -44,6 +44,18 @@ class Auditorias extends Table {
 
   DateTimeColumn get fecha => dateTime()();
 
+  /// Fecha y hora exactas de inicio de la observación.
+DateTimeColumn get inicioObservacion => dateTime().nullable()();
+
+/// Fecha y hora exactas de fin de la observación.
+DateTimeColumn get finObservacion => dateTime().nullable()();
+
+/// Número de camas del servicio observado.
+IntColumn get numeroCamasServicio => integer().nullable()();
+
+/// Consentimiento verbal del personal observado para esta observación.
+BoolColumn get consentimientoVerbal => boolean().nullable()();
+
   /// 'borrador' | 'finalizada' | 'sincronizada'.
   TextColumn get estado => text().withDefault(const Constant('borrador'))();
 
