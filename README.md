@@ -191,3 +191,19 @@ como no presentado**.
   Structure*. Prentice Hall.
 - Organización Mundial de la Salud. (2026). *Global Health Observatory:
   indicador WSH_HYGIENE_BASIC*. https://www.who.int/data/gho
+
+## Retos 2 a 5 (esquema v2)
+- **Base de datos:** drift / SQLite, `schemaVersion = 2`.
+- **Migración v1 → v2:** agrega `observacion_general` (auditorias),
+  `duracion_segundos` (oportunidades) e `intentos_fallidos_consecutivos`
+  (sincronizaciones), y crea la tabla `auditorias_historial`.
+- **Índices:** `idx_auditorias_estado_fecha`, `idx_oportunidades_auditoria`
+  e `idx_historial_auditoria_fecha`.
+- **Integridad:** `PRAGMA foreign_keys = ON` en cada conexión.
+- **Offline-first:** indicadores OMS con caché local y respaldo en assets.
+
+### Cómo ejecutar
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze --fatal-infos
+flutter test
