@@ -35,14 +35,18 @@ flutter run
 > docente pueda leer el esquema sin ejecutar el generador.
 
 ## Cómo verificarlo
-
+Después de modificar tablas o consultas, regenera primero el código de Drift y
+luego ejecuta las verificaciones:
 ```bash
-flutter analyze     # sin hallazgos
-flutter test        # 67 pruebas: dominio, datos, preferencias y widget
+flutter analyze    
+flutter test        
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 ```
 
 Las pruebas **no necesitan Internet ni un emulador**: usan
-`NativeDatabase.memory()` y `MockClient`.
+`NativeDatabase.memory()` y `MockClient`. No se debe editar manualmente
+`manos_seguras_db.g.dart`; se genera con `build_runner`.
 
 ## Estructura del proyecto
 
@@ -84,10 +88,10 @@ lib/
 |---|---|---|---|
 | `establecimientos` | Catálogo de IPRESS auditadas | `codigo_unico` (natural) | Coordenadas `nullable` |
 | `personal` | Observadores y personal observado | `dni` | Discriminada por `rol` |
-| `auditorias` | Cabecera de cada observación | `id` (UUID v4 local) | Borrado lógico (`eliminada`) |
+| `auditorias` | Cabecera de cada observación | `id` (UUID v4 local) | Borrado lógico, índice por `fecha`, inicio/fin, camas y consentimiento verbal (campos nuevos nullable) |
 | `oportunidades` | Una fila por Momento observado | `id` autoincremental | FK a `auditorias` con `ON DELETE CASCADE`, índice y `UNIQUE (auditoria_id, numero)` |
 | `indicadores_cache` | Serie histórica de la OMS | `clave` (`PER|2024|Rural`) | Copia local para modo offline |
-| `sincronizaciones` | Metadatos de descarga | `codigo` | Decide si la caché está vigente |
+| `sincronizaciones` | Metadatos de sincronización/cambios | `codigo` | Incluye `WSH_HYGIENE_BASIC` y `preferencias` |
 | `preferencias` | Almacén **clave-valor** | `clave` | Tema, último establecimiento |
 
 ## El patrón offline-first (Reto 2)
@@ -124,18 +128,38 @@ En la aplicación, la ruta `/diagnostico` muestra lo mismo en pantalla (conteo
 de filas por tabla, estado de las claves foráneas, versión del esquema y
 preferencias guardadas): es la evidencia más rápida para el informe.
 
-## Los 5 retos
+## Retos de la Guía N.° 07
 
-Cada reto tiene su punto de partida en el código, marcado con
-`TODO(reto-n)` y con el detalle en la guía:
+El seguimiento del trabajo del equipo se realiza en el [tablero Scrum de Jira](https://guia-de-aplicacion-n07.atlassian.net/jira/core/projects/N7/board?filter=assignee+IN+%28empty%2C+712020%3A9f5a1455-d3fb-4bbd-a370-8f24f1aac2b2%29&groupBy=none&atlOrigin=eyJpIjoiZmIyMWM2YmI2N2M4NDMwYjljODQ4ZTk1MmZkNTc3NGEiLCJwIjoiaiJ9).
 
 | Reto | Tema | Archivos de partida |
 |---|---|---|
-| 1 | Modelo de datos y ensamblado del grafo de dependencias | `domain/entidades/`, `data/local/tablas/`, `presentation/di.dart`, `core/tema_app.dart` |
-| 2 | Caché offline-first con vigencia (TTL) | `data/local/daos/indicadores_dao.dart`, `data/repositorios/indicador_repository_offline_first.dart` |
-| 3 | CRUD completo: edición, borrado lógico y restauración | `data/local/daos/auditorias_dao.dart`, `data/repositorios/auditoria_repository_drift.dart`, `presentation/pantallas/pantalla_auditorias.dart` |
-| 4 | Migración de esquema v1 → v2 sin pérdida de datos | `data/local/manos_seguras_db.dart`, `test/data/migracion_test.dart` |
-| 5 | Integridad referencial, índices y rendimiento | `data/local/tablas/oportunidades.dart`, `data/local/daos/auditorias_dao.dart`, `presentation/pantallas/pantalla_diagnostico.dart` |
+| 1 | Modelo de datos completo y grafo de dependencias | `domain/entidades/auditoria.dart`, `data/local/tablas/auditorias.dart`, `data/local/daos/`, `presentation/di.dart`, `test/data/repositorios_test.dart` | Cambios de modelo, consulta por rango, marca de preferencias y pruebas añadidos; falta regenerar Drift y validar localmente. |
+| 2 | Caché offline-first con vigencia (TTL) | `data/local/daos/indicadores_dao.dart`, `data/repositorios/indicador_repository_offline_first.dart` | Implementación base existente; revisar el TODO del reto. |
+| 3 | CRUD completo: edición, borrado lógico y restauración | `data/local/daos/auditorias_dao.dart`, `data/repositorios/auditoria_repository_drift.dart`, `presentation/pantallas/pantalla_auditorias.dart` | Implementación base existente; revisar el TODO del reto. |
+| 4 | Migración de esquema v1 → v2 sin pérdida de datos | `data/local/manos_seguras_db.dart`, pruebas de migración | Pendiente; el proyecto base deja la migración marcada como TODO. |
+| 5 | Integridad referencial, índices y rendimiento | `data/local/tablas/oportunidades.dart`, `data/local/daos/auditorias_dao.dart`, `presentation/pantallas/pantalla_diagnostico.dart` | Hay implementación base; revisar los TODO y validar los índices requeridos. |
+
+### Detalle del Reto 1
+
+- La cabecera de auditoría admite `inicioObservacion`, `finObservacion`,
+  `numeroCamasServicio` y `consentimientoVerbal`. Se definieron como nullable
+  para que los registros existentes no necesiten valores ficticios.
+- `auditorias.fecha` cuenta con un índice y `listarPorRango(desde, hasta)`
+  filtra por fecha y por `eliminada = false` directamente en SQL. Los límites
+  del rango son inclusivos.
+- `PreferenciasDao.guardar` guarda el valor y la marca `preferencias` en
+  `sincronizaciones` dentro de una misma transacción. La pantalla `/diagnostico`
+  muestra esa marca por separado de la sincronización del indicador.
+- En `presentation/di.dart`, la base se registra como singleton asíncrono. Se
+  espera `getIt.allReady()` antes de crear los DAO, repositorios y el sembrador,
+  porque todos necesitan la misma instancia de la base ya abierta.
+- Se añadieron pruebas para la persistencia de los campos nuevos, el filtrado
+  inclusivo de auditorías activas y la marca de cambio de preferencias.
+
+> **Antes de dar el Reto 1 por terminado:** ejecutar `dart run build_runner build
+> --delete-conflicting-outputs`, `flutter analyze` y `flutter test`. El código
+> generado se mantiene versionado, pero no se modifica a mano.
 
 ## Entrega
 
