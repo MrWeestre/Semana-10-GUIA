@@ -3,18 +3,8 @@ import 'package:drift/drift.dart';
 import 'establecimientos.dart';
 import 'personal.dart';
 
-/// Tabla `auditorias`: la cabecera del formulario de observación.
-///
-/// Puntos que conviene observar en la Semana 10:
-///
-///  * **Clave primaria de texto (UUID).** El identificador se genera en el
-///    dispositivo para que una auditoría capturada sin conexión pueda
-///    sincronizarse después sin colisionar con las de otros dispositivos.
-///  * **Claves foráneas.** `establecimientoId`, `observadorDni` y
-///    `observadoDni` referencian las tablas de catálogo. Sin
-///    `PRAGMA foreign_keys = ON` SQLite NO las hace cumplir (Reto 5).
-///  * **Borrado lógico.** La columna `eliminada` existe porque una
-///    auditoría es un documento con valor normativo: se anula, no se borra.
+/// Cabecera de una auditoría de higiene de manos.
+@TableIndex(name: 'idx_auditorias_estado_fecha', columns: {#estado, #fecha})
 class Auditorias extends Table {
   TextColumn get id => text()();
 
@@ -24,14 +14,8 @@ class Auditorias extends Table {
         onDelete: KeyAction.restrict,
       )();
 
-  /// Nombre desnormalizado (trade-off documentado): evita un JOIN en el
-  /// listado offline y conserva el nombre histórico del establecimiento.
   TextColumn get establecimientoNombre => text()();
 
-  // Dos columnas de esta tabla apuntan a `personal` (observador y
-  // observado). Sin @ReferenceName, drift no puede nombrar las dos
-  // relaciones inversas y omite los filtros del gestor: un aviso que
-  // conviene resolver desde el primer día.
   @ReferenceName('auditoriasComoObservador')
   TextColumn get observadorDni =>
       text().references(Personal, #dni, onDelete: KeyAction.restrict)();
@@ -44,29 +28,18 @@ class Auditorias extends Table {
 
   DateTimeColumn get fecha => dateTime()();
 
-  /// Fecha y hora exactas de inicio de la observación.
-DateTimeColumn get inicioObservacion => dateTime().nullable()();
+  DateTimeColumn get inicioObservacion => dateTime().nullable()();
+  DateTimeColumn get finObservacion => dateTime().nullable()();
+  IntColumn get numeroCamasServicio => integer().nullable()();
+  BoolColumn get consentimientoVerbal => boolean().nullable()();
 
-/// Fecha y hora exactas de fin de la observación.
-DateTimeColumn get finObservacion => dateTime().nullable()();
+  /// Campo añadido en el esquema v2. Nullable para conservar auditorías v1.
+  TextColumn get observacionGeneral => text().nullable()();
 
-/// Número de camas del servicio observado.
-IntColumn get numeroCamasServicio => integer().nullable()();
-
-/// Consentimiento verbal del personal observado para esta observación.
-BoolColumn get consentimientoVerbal => boolean().nullable()();
-
-  /// 'borrador' | 'finalizada' | 'sincronizada'.
   TextColumn get estado => text().withDefault(const Constant('borrador'))();
-
-  /// Borrado lógico.
   BoolColumn get eliminada => boolean().withDefault(const Constant(false))();
-
-  /// Marca temporal del último envío exitoso al servidor.
   DateTimeColumn get sincronizadaEn => dateTime().nullable()();
-
-  DateTimeColumn get creadoEn =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get creadoEn => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get actualizadoEn =>
       dateTime().withDefault(currentDateAndTime)();
 

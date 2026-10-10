@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 // archivo, por diseño, no importa entidades del dominio ni mapeadores: solo
 // declara el esquema, la versión y las migraciones.
 import 'tablas/auditorias.dart';
+import 'tablas/auditorias_historial.dart';
 import 'tablas/establecimientos.dart';
 import 'tablas/indicadores_cache.dart';
 import 'tablas/oportunidades.dart';
@@ -39,16 +40,16 @@ part 'manos_seguras_db.g.dart';
 /// documenta en el Anexo A (Error 7): la solución es sacar el *wiring* del
 /// archivo de la base.
 ///
-/// **Versionado del esquema.** [schemaVersion] empieza en 1. Cambiar el
-/// esquema sin subir este número deja a los usuarios con una base
-/// incompatible; subirlo sin escribir la migración lanza la excepción
-/// "You've bumped the schema version but didn't provide a strategy".
-/// Ese es el escenario del **Reto 4**.
+/// **Versionado del esquema.** La versión 2 agrega campos opcionales a las
+/// auditorías y oportunidades, y la racha de intentos fallidos a las
+/// sincronizaciones. La migración es incremental: conserva las filas v1 y
+/// crea el historial necesario para la trazabilidad del Reto 3.
 @DriftDatabase(
   tables: <Type>[
     Establecimientos,
     Personal,
     Auditorias,
+    AuditoriasHistorial,
     Oportunidades,
     IndicadoresCache,
     Sincronizaciones,
@@ -59,27 +60,13 @@ class ManosSegurasDb extends _$ManosSegurasDb {
   ManosSegurasDb(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// Estrategia de migración.
   ///
-  /// **Reto 4.** Aquí se documenta la evolución del esquema. La versión 1
-  /// crea todo desde cero. Para publicar una versión 2, el equipo deberá:
-  ///
-  ///  1. modificar la tabla correspondiente (por ejemplo, agregar
-  ///     `observacionGeneral` a `Auditorias`);
-  ///  2. subir [schemaVersion] a 2;
-  ///  3. implementar `onUpgrade` con la migración incremental
-  ///     **sin perder las auditorías ya guardadas**;
-  ///  4. agregar la prueba `test/migracion_v1_v2_test.dart` que abra una
-  ///     base v1 con datos, ejecute la migración y verifique que no se
-  ///     perdió nada.
-  ///
-  /// La versión que se entrega **no rompe** al usuario: si la base se crea
-  /// desde cero, `onCreate` la construye completa y `onUpgrade` nunca se
-  /// ejecuta. El `throw` de `onUpgrade` es intencional: obliga a escribir la
-  /// migración antes de subir la versión, en lugar de permitir que la
-  /// aplicación arranque con un esquema a medias.
+  /// **Reto 4.** Una instalación nueva crea todas las tablas con `onCreate`.
+  /// Una base existente ejecuta `onUpgrade`, que incorpora columnas opcionales
+  /// y la tabla de historial sin eliminar datos de la versión anterior.
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
@@ -87,22 +74,24 @@ class ManosSegurasDb extends _$ManosSegurasDb {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int desde, int hasta) async {
-        // TODO(reto-4): implemente la migración incremental.
-        //
-        // Plantilla de partida (descomente y adapte cuando exista la v2):
-        //
-        //   if (desde < 2) {
-        //     await m.addColumn(auditorias, auditorias.observacionGeneral);
-        //   }
-        throw UnimplementedError(
-          'Migración de la versión $desde a la $hasta sin implementar. '
-          'Ver el Reto 4 de la Guía de Aplicación N.° 07.',
-        );
+        // Migración incremental v1 -> v2. Todas las columnas nuevas son
+        // nullable o tienen DEFAULT para no invalidar filas preexistentes.
+        if (desde < 2) {
+          await m.addColumn(auditorias, auditorias.observacionGeneral);
+          await m.addColumn(oportunidades, oportunidades.duracionSegundos);
+          await m.addColumn(
+            sincronizaciones,
+            sincronizaciones.intentosFallidosConsecutivos,
+          );
+          await m.createTable(auditoriasHistorial);
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_auditorias_estado_fecha '
+            'ON auditorias (estado, fecha)',
+          );
+        }
       },
       beforeOpen: (OpeningDetails detalles) async {
-        // `PRAGMA foreign_keys = ON` NO viene activado por omisión en
-        // SQLite: sin esta línea las cláusulas REFERENCES son decorativas.
-        // Activarlo es la mitad del Reto 5; la otra mitad es probarlo.
+        // Es obligatorio habilitarlo en cada conexión SQLite.
         await customStatement('PRAGMA foreign_keys = ON');
       },
     );
@@ -144,8 +133,10 @@ class ManosSegurasDb extends _$ManosSegurasDb {
       'personal': await contar(personal),
       'auditorias': await contar(auditorias),
       'oportunidades': await contar(oportunidades),
+      'auditorias_historial': await contar(auditoriasHistorial),
       'indicadores_cache': await contar(indicadoresCache),
       'preferencias': await contar(preferencias),
+      'sincronizaciones': await contar(sincronizaciones),
     };
   }
 

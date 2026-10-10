@@ -27,6 +27,7 @@ extension OportunidadRegistroMapper on dm.OportunidadRegistro {
       momento: dm.Momento.desdeClave(fila.momentoClave),
       accion: dm.Accion.desdeClave(fila.accionClave),
       observacion: fila.observacion,
+      duracionSegundos: fila.duracionSegundos,
     );
   }
 
@@ -37,6 +38,7 @@ extension OportunidadRegistroMapper on dm.OportunidadRegistro {
       momentoClave: momento.clave,
       accionClave: accion.clave,
       observacion: Value<String?>(observacion),
+      duracionSegundos: Value<int?>(duracionSegundos),
       id: incluirId && id != null
           ? Value<int>(id!)
           : const Value<int>.absent(),
@@ -134,6 +136,7 @@ extension AuditoriaMapper on dm.Auditoria {
       finObservacion: Value<DateTime?>(finObservacion),
       numeroCamasServicio: Value<int?>(numeroCamasServicio),
       consentimientoVerbal: Value<bool?>(consentimientoVerbal),
+      observacionGeneral: Value<String?>(observacionGeneral),
       estado: Value<String>(estado.clave),
       eliminada: Value<bool>(eliminada),
       sincronizadaEn: Value<DateTime?>(sincronizadaEn),
@@ -159,6 +162,7 @@ extension AuditoriaMapper on dm.Auditoria {
       finObservacion: cabecera.finObservacion,
       numeroCamasServicio: cabecera.numeroCamasServicio,
       consentimientoVerbal: cabecera.consentimientoVerbal,
+      observacionGeneral: cabecera.observacionGeneral,
       estado: dm.EstadoAuditoria.desdeClave(cabecera.estado),
       eliminada: cabecera.eliminada,
       sincronizadaEn: cabecera.sincronizadaEn,

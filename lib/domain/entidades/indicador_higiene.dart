@@ -81,6 +81,7 @@ class ResultadoIndicadores {
     required this.indicadores,
     required this.origen,
     this.actualizadoEn,
+    this.datosObsoletos = false,
   });
 
   final List<IndicadorHigiene> indicadores;
@@ -89,6 +90,9 @@ class ResultadoIndicadores {
   /// Momento en que los datos se descargaron del servicio (puede ser
   /// anterior a "ahora" si vienen de la caché local).
   final DateTime? actualizadoEn;
+
+  /// `true` solo cuando la fuente de datos es una caché local vencida.
+  final bool datosObsoletos;
 
   bool get estaVacio => indicadores.isEmpty;
 }

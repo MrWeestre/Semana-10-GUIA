@@ -191,6 +191,14 @@ class _Cabecera extends StatelessWidget {
                 ),
             ],
           ),
+          if (resultado.datosObsoletos) ...<Widget>[
+            const SizedBox(height: 8),
+            const InsigniaOrigen(
+              etiqueta: 'Datos obsoletos · sin conexión',
+              esRemoto: false,
+              icono: Icons.warning_amber_rounded,
+            ),
+          ],
           if (primero != null && ultimo != null) ...<Widget>[
             const Divider(height: 28),
             Row(

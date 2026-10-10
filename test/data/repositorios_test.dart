@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show QueryRow, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -96,7 +96,7 @@ void main() {
   // -----------------------------------------------------------------
   group('Esquema y migraciones', () {
     test('la versión del esquema es la esperada', () {
-      expect(base.schemaVersion, 1);
+      expect(base.schemaVersion, 2);
     });
 
     test('las claves foráneas se activan en beforeOpen (Reto 5)', () async {
@@ -234,6 +234,69 @@ void main() {
       final Auditoria actualizada = await repositorio.obtenerPorId(id);
       expect(actualizada.estado, EstadoAuditoria.finalizada);
       expect(actualizada.totalOportunidades, 5);
+    });
+
+    test('editar conserva oportunidades y registra el historial', () async {
+      await sembrarCatalogos();
+      final String id = await repositorio.guardar(
+        _auditoria(id: 'editar-con-historial', oportunidades: _cincoOportunidades(1)),
+      );
+      final Auditoria original = await repositorio.obtenerPorId(id);
+      final List<OportunidadRegistro> detalle = original.oportunidades;
+      await repositorio.actualizar(Auditoria(
+        id: original.id,
+        establecimientoId: original.establecimientoId,
+        establecimientoNombre: original.establecimientoNombre,
+        observadorDni: original.observadorDni,
+        observadorNombre: original.observadorNombre,
+        observadoDni: original.observadoDni,
+        observadoNombre: original.observadoNombre,
+        fecha: original.fecha,
+        observacionGeneral: 'Revisado en la segunda observación',
+        oportunidades: detalle,
+      ));
+      final Auditoria actualizada = await repositorio.obtenerPorId(id);
+      expect(actualizada.totalOportunidades, 5);
+      expect(actualizada.observacionGeneral, 'Revisado en la segunda observación');
+      final QueryRow historial = await base.customSelect(
+        "SELECT COUNT(*) AS total FROM auditorias_historial WHERE auditoria_id = '$id'",
+      ).getSingle();
+      expect(historial.read<int>('total'), greaterThan(0));
+    });
+
+    test('restaurar devuelve la auditoría anulada al listado activo', () async {
+      await sembrarCatalogos();
+      final String id = await repositorio.guardar(_auditoria(id: 'restaurable'));
+      await repositorio.eliminarLogicamente(id);
+      expect(await repositorio.listarAuditorias(), isEmpty);
+      await repositorio.restaurar(id);
+      expect((await repositorio.listarAuditorias()).map((Auditoria a) => a.id), contains(id));
+    });
+
+    test('la papelera filtra solo las auditorías anuladas', () async {
+      await sembrarCatalogos();
+      await repositorio.guardar(_auditoria(id: 'activa'));
+      final String anulada = await repositorio.guardar(_auditoria(id: 'anulada'));
+      await repositorio.eliminarLogicamente(anulada);
+
+      expect((await repositorio.listarAuditorias()).map((Auditoria a) => a.id), <String>['activa']);
+      expect(
+        (await repositorio.listarAuditorias(soloEliminadas: true)).map((Auditoria a) => a.id),
+        <String>['anulada'],
+      );
+    });
+
+    test('duplicar crea id diferente, fecha actual y copia las oportunidades', () async {
+      await sembrarCatalogos();
+      final String origenId = await repositorio.guardar(
+        _auditoria(id: 'origen-duplicacion', oportunidades: _cincoOportunidades(2)),
+      );
+      final String copiaId = await repositorio.duplicar(origenId);
+      final Auditoria copia = await repositorio.obtenerPorId(copiaId);
+      expect(copiaId, isNot(origenId));
+      expect(copia.fecha.year, DateTime.now().year);
+      expect(copia.estado, EstadoAuditoria.borrador);
+      expect(copia.totalOportunidades, 5);
     });
 
     test('actualizar una auditoría inexistente lanza FalloNoEncontrado',
@@ -410,6 +473,58 @@ void main() {
 
       expect(resultado.origen, OrigenDatos.cacheLocal);
       expect(resultado.indicadores, hasLength(4));
+      expect(resultado.datosObsoletos, isTrue);
+    });
+
+    test('la política TTL admite vigencias distintas por recurso', () {
+      final IndicadorRepositoryOfflineFirst repo = IndicadorRepositoryOfflineFirst(
+        dao: dao,
+        servicio: _servicioQueFalla(),
+        reloj: () => DateTime(2026, 10, 20, 12),
+        politicaVigencia: const <String, Duration>{
+          'WSH_HYGIENE_BASIC': Duration(hours: 24),
+          'establecimientos': Duration(days: 7),
+          'auditorias': Duration(minutes: 5),
+        },
+      );
+      final DateTime ahora = DateTime(2026, 10, 20, 12);
+      expect(repo.cacheEsVigente(ahora.subtract(const Duration(days: 6)), ahora: ahora, codigo: 'establecimientos'), isTrue);
+      expect(repo.cacheEsVigente(ahora.subtract(const Duration(minutes: 6)), ahora: ahora, codigo: 'auditorias'), isFalse);
+    });
+
+    test('invalidar conserva las filas y obliga a refrescar el recurso', () async {
+      await dao.reemplazarTodo(_indicadores(2), momento: DateTime(2026, 10, 20, 11));
+      await dao.invalidar(HigieneApiService.codigoIndicador);
+      expect(await dao.leerTodo(), hasLength(2));
+      expect(await dao.ultimaSincronizacion(HigieneApiService.codigoIndicador), isNull);
+    });
+
+    test('el intento fallido se registra y se reinicia al descargar', () async {
+      await dao.registrarIntentoFallido(HigieneApiService.codigoIndicador);
+      expect(await dao.intentosFallidos(HigieneApiService.codigoIndicador), 1);
+      final HigieneApiService servicio = HigieneApiService(
+        cliente: MockClient((http.Request request) async => http.Response(_cuerpoApi(2), 200)),
+      );
+      final IndicadorRepositoryOfflineFirst repo = _repositorio(dao: dao, servicio: servicio);
+      await repo.obtenerIndicadores(forzarRefresco: true);
+      expect(await dao.intentosFallidos(HigieneApiService.codigoIndicador), 0);
+    });
+
+    test('forzar refresco consulta la red aun con caché vigente', () async {
+      final DateTime ahora = DateTime(2026, 10, 20, 12);
+      await dao.reemplazarTodo(_indicadores(2), momento: ahora);
+      bool redConsultada = false;
+      final HigieneApiService servicio = HigieneApiService(
+        cliente: MockClient((http.Request request) async {
+          redConsultada = true;
+          return http.Response(_cuerpoApi(3), 200);
+        }),
+      );
+      final IndicadorRepositoryOfflineFirst repo = _repositorio(dao: dao, servicio: servicio, ahora: ahora);
+      final ResultadoIndicadores resultado = await repo.obtenerIndicadores(forzarRefresco: true);
+      expect(redConsultada, isTrue);
+      expect(resultado.origen, OrigenDatos.red);
+      expect(resultado.indicadores, hasLength(3));
     });
 
     test('con caché vigente NO consulta la red', () async {
@@ -436,6 +551,25 @@ void main() {
 
       expect(resultado.origen, OrigenDatos.cacheLocal);
       expect(seConsultoLaRed, isFalse);
+    });
+
+    test('caché vencida y descarga exitosa reemplaza los datos locales', () async {
+      final DateTime vencimiento = DateTime(2026, 1, 1);
+      await dao.reemplazarTodo(_indicadores(1), momento: vencimiento);
+      final HigieneApiService servicio = HigieneApiService(
+        cliente: MockClient((http.Request request) async => http.Response(_cuerpoApi(3), 200)),
+      );
+      final IndicadorRepositoryOfflineFirst repo = _repositorio(
+        dao: dao,
+        servicio: servicio,
+        ahora: DateTime(2026, 10, 20, 12),
+      );
+      final ResultadoIndicadores resultado = await repo.obtenerIndicadores();
+      expect(resultado.origen, OrigenDatos.red);
+      expect(resultado.datosObsoletos, isFalse);
+      expect(await dao.leerTodo(), hasLength(3));
+      expect(await dao.ultimaSincronizacion(HigieneApiService.codigoIndicador), DateTime(2026, 10, 20, 12));
+      expect(await dao.intentosFallidos(HigieneApiService.codigoIndicador), 0);
     });
 
     test('descarga exitosa guarda en caché y devuelve origen red', () async {
@@ -510,6 +644,46 @@ void main() {
       );
     });
 
+    test('la consulta paginada aplica LIMIT y OFFSET en SQLite', () async {
+      await sembrarCatalogos();
+      for (int i = 0; i < 23; i++) {
+        await repositorio.guardar(_auditoria(
+          id: 'pagina-$i',
+          fecha: DateTime(2026, 1, 1).add(Duration(days: i)),
+        ));
+      }
+      final List<Auditoria> primera = await repositorio.listarAuditorias(limite: 10, offset: 0);
+      final List<Auditoria> segunda = await repositorio.listarAuditorias(limite: 10, offset: 10);
+      expect(primera, hasLength(10));
+      expect(segunda, hasLength(10));
+      expect(primera.map((Auditoria a) => a.id).toSet().intersection(segunda.map((Auditoria a) => a.id).toSet()), isEmpty);
+    });
+
+    test('el plan de consulta aprovecha el índice compuesto', () async {
+      await sembrarCatalogos();
+      await sembrador.sembrar(cantidad: 3);
+      final List<String> plan = await infra.auditoriasDao.explicarPlanListado();
+      expect(plan.join(' ').toLowerCase(), contains('idx_auditorias_estado_fecha'));
+    });
+
+    test('las claves de catálogo restringen el borrado y el detalle usa CASCADE', () async {
+      await sembrarCatalogos();
+      final String id = await repositorio.guardar(
+        _auditoria(id: 'cascade-test', oportunidades: _cincoOportunidades(1)),
+      );
+
+      await expectLater(
+        () => base.customStatement("DELETE FROM establecimientos WHERE codigo_unico = '00006405'"),
+        throwsA(isA<Exception>()),
+      );
+
+      await base.customStatement("DELETE FROM auditorias WHERE id = '$id'");
+      final QueryRow detalle = await base.customSelect(
+        "SELECT COUNT(*) AS total FROM oportunidades WHERE auditoria_id = 'cascade-test'",
+      ).getSingle();
+      expect(detalle.read<int>('total'), 0);
+    });
+
     test('no se puede guardar una auditoría con establecimiento inexistente',
         () async {
       expect(
@@ -541,6 +715,53 @@ void main() {
 
       expect(porMomento.keys, hasLength(5));
       expect(porMomento.values.first.total, 1);
+    });
+
+    test('benchmark de 1000 auditorías y 5000 oportunidades', () async {
+      await sembrarCatalogos();
+      final Stopwatch carga = Stopwatch()..start();
+      await infra.auditoriasDao.transaccion(() async {
+        for (int i = 0; i < 1000; i++) {
+          final String id = 'perf-$i';
+          final Auditoria cabecera = _auditoria(
+            id: id,
+            fecha: DateTime(2025, 1, 1).add(Duration(minutes: i)),
+          );
+          await infra.auditoriasDao.insertarCabecera(cabecera);
+          for (int j = 0; j < Momento.values.length; j++) {
+            await infra.auditoriasDao.insertarOportunidad(OportunidadRegistro(
+              auditoriaId: id,
+              numero: j + 1,
+              momento: Momento.values[j],
+              accion: j == 0 ? Accion.omision : Accion.lavadoDeManos,
+            ));
+          }
+        }
+      });
+      carga.stop();
+
+      final Stopwatch consultaLista = Stopwatch()..start();
+      final List<Auditoria> todas = await repositorio.listarAuditorias(limite: 1000);
+      consultaLista.stop();
+      final Stopwatch consultaSql = Stopwatch()..start();
+      final ResumenAdherencia resumenSql = await repositorio.resumenAdherencia();
+      consultaSql.stop();
+      final Stopwatch consultaMemoria = Stopwatch()..start();
+      final int oportunidadesMemoria = todas.fold<int>(0, (int total, Auditoria a) => total + a.totalOportunidades);
+      final int cumplidasMemoria = todas.fold<int>(0, (int total, Auditoria a) => total + a.oportunidadesCumplidas);
+      consultaMemoria.stop();
+
+      expect(todas, hasLength(1000));
+      expect(resumenSql.totalOportunidades, 5000);
+      expect(resumenSql.totalOportunidades, oportunidadesMemoria);
+      expect(resumenSql.totalCumplidas, cumplidasMemoria);
+      // Los tiempos se muestran en la salida de flutter test para comparar SQL
+      // agregado con el recorrido en memoria, no como umbral frágil de CI.
+      // ignore: avoid_print
+      print('BENCHMARK Reto 5: carga=${carga.elapsedMilliseconds} ms; '
+          'lista=${consultaLista.elapsedMilliseconds} ms; '
+          'agregadoSQL=${consultaSql.elapsedMilliseconds} ms; '
+          'agregadoMemoria=${consultaMemoria.elapsedMilliseconds} ms');
     });
   });
 

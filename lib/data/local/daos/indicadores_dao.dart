@@ -29,10 +29,14 @@ abstract interface class IndicadoresDao {
   Future<void> reemplazarTodo(
     List<IndicadorHigiene> indicadores, {
     required DateTime momento,
+    String codigo = HigieneApiService.codigoIndicador,
   });
 
   /// Fecha de la última sincronización del recurso, o `null`.
   Future<DateTime?> ultimaSincronizacion(String codigo);
+  Future<int> registrarIntentoFallido(String codigo);
+  Future<int> intentosFallidos(String codigo);
+  Future<void> invalidar(String codigo);
 
   /// Elimina todos los registros de la caché (sin tocar `sincronizaciones`).
   Future<void> limpiar();
@@ -78,16 +82,16 @@ class DriftIndicadoresDao extends DatabaseAccessor<db.ManosSegurasDb>
   /// Si algo falla, la caché anterior sigue intacta: la aplicación nunca se
   /// queda sin datos por una descarga a medias.
   ///
-  /// TODO(reto-2, mejora): agregue el código del recurso como parámetro (hoy
-  /// está fijo en `WSH_HYGIENE_BASIC`) y registre también el número de
-  /// intentos fallidos en `sincronizaciones`.
   @override
   Future<void> reemplazarTodo(
     List<IndicadorHigiene> indicadores, {
     required DateTime momento,
+    String codigo = HigieneApiService.codigoIndicador,
   }) async {
     await transaction(() async {
-      await delete(attachedDatabase.indicadoresCache).go();
+      await (delete(attachedDatabase.indicadoresCache)
+            ..where((g.TablaIndicadoresCache t) => t.codigoIndicador.equals(codigo)))
+          .go();
 
       await batch((Batch b) {
         b.insertAll(
@@ -103,9 +107,10 @@ class DriftIndicadoresDao extends DatabaseAccessor<db.ManosSegurasDb>
 
       await into(attachedDatabase.sincronizaciones).insertOnConflictUpdate(
         db.SincronizacionesCompanion.insert(
-          codigo: HigieneApiService.codigoIndicador,
+          codigo: codigo,
           ultimaSincronizacion: momento,
           registros: Value<int>(indicadores.length),
+          intentosFallidosConsecutivos: const Value<int>(0),
         ),
       );
     });
@@ -118,6 +123,54 @@ class DriftIndicadoresDao extends DatabaseAccessor<db.ManosSegurasDb>
               ..where((g.TablaSincronizaciones t) => t.codigo.equals(codigo)))
             .getSingleOrNull();
     return fila?.ultimaSincronizacion;
+  }
+
+  @override
+  Future<int> registrarIntentoFallido(String codigo) async {
+    return transaction<int>(() async {
+      final db.Sincronizacione? fila =
+          await (select(attachedDatabase.sincronizaciones)
+                ..where((g.TablaSincronizaciones t) => t.codigo.equals(codigo)))
+              .getSingleOrNull();
+      final int intentos = (fila?.intentosFallidosConsecutivos ?? 0) + 1;
+      if (fila == null) {
+        // Epoch indica que todavía no hubo una descarga exitosa; no se debe
+        // presentar como una marca de vigencia reciente.
+        await into(attachedDatabase.sincronizaciones).insert(
+          db.SincronizacionesCompanion.insert(
+            codigo: codigo,
+            ultimaSincronizacion: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+            registros: const Value<int>(0),
+            intentosFallidosConsecutivos: Value<int>(intentos),
+          ),
+        );
+      } else {
+        await (update(attachedDatabase.sincronizaciones)
+              ..where((g.TablaSincronizaciones t) => t.codigo.equals(codigo)))
+            .write(
+          db.SincronizacionesCompanion(
+            intentosFallidosConsecutivos: Value<int>(intentos),
+          ),
+        );
+      }
+      return intentos;
+    });
+  }
+
+  @override
+  Future<int> intentosFallidos(String codigo) async {
+    final db.Sincronizacione? fila =
+        await (select(attachedDatabase.sincronizaciones)
+              ..where((g.TablaSincronizaciones t) => t.codigo.equals(codigo)))
+            .getSingleOrNull();
+    return fila?.intentosFallidosConsecutivos ?? 0;
+  }
+
+  @override
+  Future<void> invalidar(String codigo) async {
+    await (delete(attachedDatabase.sincronizaciones)
+          ..where((g.TablaSincronizaciones t) => t.codigo.equals(codigo)))
+        .go();
   }
 
   @override

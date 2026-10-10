@@ -14,7 +14,11 @@ import '../entidades/indicador_higiene.dart';
 /// ```
 abstract interface class IndicadorRepository {
   /// Indica si la caché local puede usarse sin consultar el servicio.
-  bool cacheEsVigente(DateTime? ultimaSincronizacion, {DateTime? ahora});
+  bool cacheEsVigente(
+    DateTime? ultimaSincronizacion, {
+    DateTime? ahora,
+    String codigo = 'WSH_HYGIENE_BASIC',
+  });
 
   /// Consulta offline-first: nunca lanza excepción por falta de red;
   /// degrada el [OrigenDatos] y sigue mostrando datos.
@@ -37,6 +41,10 @@ abstract interface class IndicadorRepository {
 
   /// Vacía la caché (útil para demostrar el camino "sin datos locales").
   Future<void> limpiarCache();
+
+  /// Elimina solo la marca de sincronización, no las filas almacenadas.
+  /// La próxima consulta intentará descargar el recurso de nuevo.
+  Future<void> invalidar(String codigo);
 }
 
 /// **Contrato del almacén clave-valor** para preferencias y banderas

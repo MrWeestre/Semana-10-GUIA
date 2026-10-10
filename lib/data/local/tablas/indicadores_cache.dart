@@ -51,6 +51,11 @@ class Sincronizaciones extends Table {
   /// Cantidad de registros escritos en la última descarga exitosa.
   IntColumn get registros => integer().withDefault(const Constant(0))();
 
+  /// Racha de intentos fallidos consecutivos para este recurso.
+  /// Vuelve a cero al completar una descarga exitosa.
+  IntColumn get intentosFallidosConsecutivos =>
+      integer().withDefault(const Constant(0))();
+
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{codigo};
 }

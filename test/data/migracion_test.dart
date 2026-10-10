@@ -14,22 +14,10 @@ import 'package:sqlite3/sqlite3.dart';
 /// **Prueba de migración de esquema (Reto 4).**
 ///
 /// Verifica, de forma automatizada, que una base creada con el esquema de la
-/// **versión 1** puede abrirse con la versión que declara hoy
-/// `ManosSegurasDb.schemaVersion` **sin perder datos**.
+/// **versión 1** puede abrirse con el esquema v2 actual **sin perder datos**.
 ///
-/// Cómo la usa el equipo (procedimiento del Reto 4):
-///
-///  1. agregue la columna nueva a la tabla correspondiente en
-///     `lib/data/local/tablas/` (por ejemplo `observacionGeneral` en
-///     `Auditorias`);
-///  2. suba `schemaVersion` a 2 en `manos_seguras_db.dart`;
-///  3. implemente `onUpgrade`:
-///     `if (desde < 2) await m.addColumn(auditorias, auditorias.observacionGeneral);`
-///  4. ejecute `flutter test test/data/migracion_test.dart`.
-///
-/// La prueba está escrita para ser **útil hoy y exigente mañana**: mientras
-/// `schemaVersion` siga siendo 1 pasa (no hay nada que migrar), y en cuanto el
-/// equipo lo suba empieza a exigir que `onUpgrade` esté implementado.
+/// Se crea un archivo SQLite con las tablas de la v1 y registros relacionados,
+/// y luego se comprueba que Drift lo migra conservando la cabecera y el detalle.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -61,8 +49,7 @@ void main() {
       InfraestructuraLocal(base).auditoriasDao,
     );
 
-    // 3. Si el esquema no cambió, esto se cumple trivialmente. Si el equipo
-    //    subió schemaVersion sin escribir la migración, aquí se ve el fallo.
+    // 3. Las filas v1 deben seguir disponibles tras ejecutar la migración.
     final List<Auditoria> auditorias = await repositorio.listarAuditorias();
     expect(
       auditorias,
@@ -82,9 +69,7 @@ void main() {
     expect(actualizada.estado, EstadoAuditoria.finalizada);
   });
 
-  // Test que documenta el estado final esperado del Reto 4. Se deja "saltado"
-  // a propósito: el equipo debe quitar el `skip` cuando suba el esquema a la
-  // versión 2 y la comparación tenga sentido.
+  // Test de aceptación: la aplicación abre el esquema v2 ya migrado.
   test(
     'la versión del esquema es 2 (Reto 4 completado)',
     () {
@@ -93,11 +78,9 @@ void main() {
       expect(
         base.schemaVersion,
         2,
-        reason: 'Suba schemaVersion a 2 y descomente la migración en '
-            'manos_seguras_db.dart para completar el Reto 4.',
+        reason: 'La base debe estar en versión 2 para completar el Reto 4.',
       );
     },
-    skip: 'Descomente/skip: activar cuando el equipo implemente la v2.',
   );
 }
 
@@ -143,6 +126,10 @@ void _crearBaseVersion1(File archivo) {
         observado_dni TEXT NOT NULL REFERENCES personal (dni),
         observado_nombre TEXT NOT NULL,
         fecha TEXT NOT NULL,
+        inicio_observacion TEXT,
+        fin_observacion TEXT,
+        numero_camas_servicio INTEGER,
+        consentimiento_verbal INTEGER,
         estado TEXT NOT NULL DEFAULT 'borrador',
         eliminada INTEGER NOT NULL DEFAULT 0,
         sincronizada_en TEXT,

@@ -122,10 +122,7 @@ class TarjetaMomentos extends StatelessWidget {
   }
 }
 
-/// Tarjeta de una auditoría en el listado local.
-///
-/// **Reto 3:** agregue aquí los botones de editar, anular y duplicar; el
-/// callback [alEditar] ya está previsto en el constructor.
+/// Tarjeta de una auditoría en el listado local, con acciones según su estado.
 class TarjetaAuditoria extends StatelessWidget {
   const TarjetaAuditoria({
     super.key,
@@ -133,12 +130,16 @@ class TarjetaAuditoria extends StatelessWidget {
     this.alTocar,
     this.alEditar,
     this.alAnular,
+    this.alDuplicar,
+    this.alRestaurar,
   });
 
   final Auditoria auditoria;
   final VoidCallback? alTocar;
   final VoidCallback? alEditar;
   final VoidCallback? alAnular;
+  final VoidCallback? alDuplicar;
+  final VoidCallback? alRestaurar;
 
   @override
   Widget build(BuildContext context) {
@@ -173,8 +174,7 @@ class TarjetaAuditoria extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${formatearFecha(auditoria.fecha)} · '
-                        '${auditoria.observadoNombre}',
+                        '${formatearFecha(auditoria.fecha)} · ${auditoria.observadoNombre}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -186,22 +186,14 @@ class TarjetaAuditoria extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    formatearPorcentaje(
-                      auditoria.tieneDatos ? adherencia : null,
-                    ),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                    formatearPorcentaje(auditoria.tieneDatos ? adherencia : null),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: color),
                   ),
                 ),
               ],
@@ -224,17 +216,18 @@ class TarjetaAuditoria extends StatelessWidget {
                 ),
                 if (auditoria.eliminada)
                   const _Etiqueta(
-                    texto: 'Anulada',
+                    texto: 'En papelera',
                     color: AppColors.alerta,
                     icono: Icons.delete_outline,
                   ),
               ],
             ),
-            if (alEditar != null || alAnular != null) ...<Widget>[
+            if (alEditar != null || alAnular != null || alDuplicar != null || alRestaurar != null) ...<Widget>[
               const SizedBox(height: 8),
               const Divider(height: 1),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 4,
                 children: <Widget>[
                   if (alEditar != null)
                     TextButton.icon(
@@ -242,11 +235,23 @@ class TarjetaAuditoria extends StatelessWidget {
                       icon: const Icon(Icons.edit_outlined, size: 18),
                       label: const Text('Editar'),
                     ),
+                  if (alDuplicar != null)
+                    TextButton.icon(
+                      onPressed: alDuplicar,
+                      icon: const Icon(Icons.copy_outlined, size: 18),
+                      label: const Text('Duplicar'),
+                    ),
                   if (alAnular != null)
                     TextButton.icon(
                       onPressed: alAnular,
                       icon: const Icon(Icons.delete_outline, size: 18),
                       label: const Text('Anular'),
+                    ),
+                  if (alRestaurar != null)
+                    TextButton.icon(
+                      onPressed: alRestaurar,
+                      icon: const Icon(Icons.restore, size: 18),
+                      label: const Text('Restaurar'),
                     ),
                 ],
               ),
@@ -266,12 +271,14 @@ class TarjetaOportunidad extends StatelessWidget {
     required this.momento,
     required this.accion,
     this.observacion,
+    this.duracionSegundos,
   });
 
   final int numero;
   final Momento momento;
   final Accion accion;
   final String? observacion;
+  final int? duracionSegundos;
 
   @override
   Widget build(BuildContext context) {
@@ -291,11 +298,7 @@ class TarjetaOportunidad extends StatelessWidget {
               color: color.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              EstiloCatalogo.iconoAccion(accion),
-              color: color,
-              size: 20,
-            ),
+            child: Icon(EstiloCatalogo.iconoAccion(accion), color: color, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -304,39 +307,19 @@ class TarjetaOportunidad extends StatelessWidget {
               children: <Widget>[
                 Text(
                   'Oportunidad ${numero.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  momento.etiqueta,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                Text(momento.etiqueta, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
-                Text(
-                  'Acción: ${accion.etiqueta}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
+                Text('Acción: ${accion.etiqueta}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+                if (duracionSegundos != null) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text('Duración: $duracionSegundos s', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                ],
                 if (observacion != null && observacion!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
-                  Text(
-                    'Nota: $observacion',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text('Nota: $observacion', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textSecondary)),
                 ],
               ],
             ),

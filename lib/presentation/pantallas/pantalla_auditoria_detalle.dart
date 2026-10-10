@@ -46,10 +46,7 @@ class _PantallaAuditoriaDetalleState extends State<PantallaAuditoriaDetalle> {
 
   /// **Reto 3 (parte B):** cambiar el estado de la auditoría.
   ///
-  /// TODO(reto-3): implemente el cambio de estado (`borrador` → `finalizada`)
-  /// usando `AuditoriaRepository.actualizar(...)`. Observe que el repositorio
-  /// reemplaza el detalle completo, así que debe enviar la auditoría con sus
-  /// oportunidades tal como se cargó.
+  /// Actualiza el estado mediante el repositorio, conservando el detalle.
   Future<void> _avanzarEstado(Auditoria auditoria) async {
     final EstadoAuditoria siguiente = switch (auditoria.estado) {
       EstadoAuditoria.borrador => EstadoAuditoria.finalizada,
@@ -137,6 +134,7 @@ class _PantallaAuditoriaDetalleState extends State<PantallaAuditoriaDetalle> {
                         momento: o.momento,
                         accion: o.accion,
                         observacion: o.observacion,
+                        duracionSegundos: o.duracionSegundos,
                       ),
                     ),
                   const SizedBox(height: 12),
@@ -208,6 +206,8 @@ class _Cabecera extends StatelessWidget {
           _Dato('Observador', auditoria.observadorNombre),
           _Dato('Personal observado', auditoria.observadoNombre),
           _Dato('Establecimiento (código)', auditoria.establecimientoId),
+          if (auditoria.observacionGeneral != null && auditoria.observacionGeneral!.isNotEmpty)
+            _Dato('Observación general', auditoria.observacionGeneral!),
           _Dato(
             'Sincronizada',
             auditoria.sincronizadaEn == null

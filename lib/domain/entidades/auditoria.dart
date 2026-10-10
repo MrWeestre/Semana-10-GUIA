@@ -52,6 +52,7 @@ class Auditoria {
     this.finObservacion,
     this.numeroCamasServicio,
     this.consentimientoVerbal,
+    this.observacionGeneral,
     this.estado = EstadoAuditoria.borrador,
     this.eliminada = false,
     this.sincronizadaEn,
@@ -74,6 +75,10 @@ class Auditoria {
   final DateTime? finObservacion;
   final int? numeroCamasServicio;
   final bool? consentimientoVerbal;
+
+  /// Nota general opcional añadida en la versión 2 del esquema.
+  final String? observacionGeneral;
+
   final EstadoAuditoria estado;
 
   /// Borrado lógico (*soft delete*): la fila nunca se elimina físicamente
@@ -120,6 +125,7 @@ class Auditoria {
     DateTime? finObservacion,
     int? numeroCamasServicio,
     bool? consentimientoVerbal,
+    String? observacionGeneral,
     EstadoAuditoria? estado,
     bool? eliminada,
     DateTime? sincronizadaEn,
@@ -141,6 +147,7 @@ class Auditoria {
           numeroCamasServicio ?? this.numeroCamasServicio,
       consentimientoVerbal:
           consentimientoVerbal ?? this.consentimientoVerbal,
+      observacionGeneral: observacionGeneral ?? this.observacionGeneral,
       estado: estado ?? this.estado,
       eliminada: eliminada ?? this.eliminada,
       sincronizadaEn: sincronizadaEn ?? this.sincronizadaEn,

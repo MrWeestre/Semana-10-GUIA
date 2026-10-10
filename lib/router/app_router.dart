@@ -5,6 +5,7 @@ import '../presentation/pantallas/pantalla_auditoria_detalle.dart';
 import '../presentation/pantallas/pantalla_auditorias.dart';
 import '../presentation/pantallas/pantalla_bienvenida.dart';
 import '../presentation/pantallas/pantalla_diagnostico.dart';
+import '../presentation/pantallas/pantalla_editar_auditoria.dart';
 import '../presentation/pantallas/pantalla_establecimiento.dart';
 import '../presentation/pantallas/pantalla_indicador_detalle.dart';
 import '../presentation/pantallas/pantalla_indicadores.dart';
@@ -64,6 +65,21 @@ final GoRouter appRouter = GoRouter(
             }
             return PantallaAuditoriaDetalle(auditoriaId: id);
           },
+          routes: <RouteBase>[
+            GoRoute(
+              path: 'editar',
+              name: 'editarAuditoria',
+              builder: (BuildContext context, GoRouterState state) {
+                final String id = state.pathParameters['id'] ?? '';
+                if (id.isEmpty) {
+                  return const PantallaRutaInvalida(
+                    mensaje: 'Falta el identificador de la auditoría.',
+                  );
+                }
+                return PantallaEditarAuditoria(auditoriaId: id);
+              },
+            ),
+          ],
         ),
       ],
     ),

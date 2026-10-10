@@ -25,11 +25,21 @@ import '../entidades/oportunidad_registro.dart';
 abstract interface class AuditoriaRepository {
   /// Emite la lista de auditorías activas cada vez que la tabla cambia.
   /// Es un `Stream` porque la Semana 12 conectará este flujo a Riverpod.
-  Stream<List<Auditoria>> observarAuditorias({bool incluirEliminadas = false});
+  Stream<List<Auditoria>> observarAuditorias({
+    bool incluirEliminadas = false,
+    bool soloEliminadas = false,
+    int? limite,
+    int offset = 0,
+    EstadoAuditoria? estado,
+  });
 
   /// Lista puntual (útil para pruebas y para exportar).
   Future<List<Auditoria>> listarAuditorias({
     bool incluirEliminadas = false,
+    bool soloEliminadas = false,
+    int? limite,
+    int offset = 0,
+    EstadoAuditoria? estado,
   });
 
   /// Devuelve una auditoría con sus oportunidades o lanza
@@ -45,6 +55,12 @@ abstract interface class AuditoriaRepository {
 
   /// Borrado lógico: marca `eliminada = true`. Nunca borra la fila.
   Future<void> eliminarLogicamente(String id);
+
+  /// Recupera una auditoría desde la papelera, conservando su detalle.
+  Future<void> restaurar(String id);
+
+  /// Crea una copia nueva en estado borrador y con fecha actual.
+  Future<String> duplicar(String id);
 
   /// Agrega una oportunidad a una auditoría ya guardada.
   Future<OportunidadRegistro> agregarOportunidad(

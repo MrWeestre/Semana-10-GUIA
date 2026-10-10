@@ -26,18 +26,38 @@ class RepositorioAuditoriasEnMemoria implements AuditoriaRepository {
   @override
   Stream<List<Auditoria>> observarAuditorias({
     bool incluirEliminadas = false,
+    bool soloEliminadas = false,
+    int? limite,
+    int offset = 0,
+    EstadoAuditoria? estado,
   }) async* {
-    yield await listarAuditorias(incluirEliminadas: incluirEliminadas);
+    yield await listarAuditorias(
+      incluirEliminadas: incluirEliminadas,
+      soloEliminadas: soloEliminadas,
+      limite: limite,
+      offset: offset,
+      estado: estado,
+    );
   }
 
   @override
   Future<List<Auditoria>> listarAuditorias({
     bool incluirEliminadas = false,
+    bool soloEliminadas = false,
+    int? limite,
+    int offset = 0,
+    EstadoAuditoria? estado,
   }) async {
     _verificarFallo();
-    return _auditorias
-        .where((Auditoria a) => incluirEliminadas || !a.eliminada)
+    final List<Auditoria> filtradas = _auditorias
+        .where((Auditoria a) => soloEliminadas ? a.eliminada : (incluirEliminadas || !a.eliminada))
+        .where((Auditoria a) => estado == null || a.estado == estado)
         .toList();
+    final int inicio = offset.clamp(0, filtradas.length).toInt();
+    final int fin = limite == null
+        ? filtradas.length
+        : (inicio + limite).clamp(inicio, filtradas.length).toInt();
+    return filtradas.sublist(inicio, fin);
   }
 
   @override
@@ -82,6 +102,44 @@ class RepositorioAuditoriasEnMemoria implements AuditoriaRepository {
       throw FalloNoEncontrado('No existe la auditoría $id.');
     }
     _auditorias[indice] = _auditorias[indice].copyWith(eliminada: true);
+  }
+
+  @override
+  Future<void> restaurar(String id) async {
+    _verificarFallo();
+    final int indice = _auditorias.indexWhere((Auditoria a) => a.id == id);
+    if (indice < 0) throw FalloNoEncontrado('No existe la auditoría $id.');
+    _auditorias[indice] = _auditorias[indice].copyWith(eliminada: false);
+  }
+
+  @override
+  Future<String> duplicar(String id) async {
+    final Auditoria original = await obtenerPorId(id);
+    final List<OportunidadRegistro> oportunidades = original.oportunidades
+        .map((OportunidadRegistro o) => OportunidadRegistro(
+              auditoriaId: '',
+              numero: o.numero,
+              momento: o.momento,
+              accion: o.accion,
+              observacion: o.observacion,
+              duracionSegundos: o.duracionSegundos,
+            ))
+        .toList();
+    final String nuevoId = 'id-${_auditorias.length + 1}';
+    await guardar(Auditoria(
+      id: nuevoId,
+      establecimientoId: original.establecimientoId,
+      establecimientoNombre: original.establecimientoNombre,
+      observadorDni: original.observadorDni,
+      observadorNombre: original.observadorNombre,
+      observadoDni: original.observadoDni,
+      observadoNombre: original.observadoNombre,
+      fecha: DateTime.now(),
+      estado: EstadoAuditoria.borrador,
+      observacionGeneral: original.observacionGeneral,
+      oportunidades: oportunidades,
+    ));
+    return nuevoId;
   }
 
   @override
