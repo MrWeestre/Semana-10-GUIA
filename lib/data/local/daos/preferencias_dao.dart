@@ -44,15 +44,31 @@ class DriftPreferenciasDao extends DatabaseAccessor<db.ManosSegurasDb>
   /// TODO(reto-1b): registre además, en la misma transacción, la fecha del
   /// último cambio en la tabla `sincronizaciones` con el código
   /// `'preferencias'`, y muestre ese dato en la pantalla de diagnóstico.
+  /// Guarda la preferencia y actualiza la marca en `sincronizaciones` 
+  /// dentro de una misma transacción SQL (Requerimiento Reto 1).
   @override
-  Future<void> guardar(String clave, String valor) {
-    return into(attachedDatabase.preferencias).insertOnConflictUpdate(
-      db.PreferenciasCompanion.insert(
-        clave: clave,
-        valor: valor,
-        actualizadoEn: Value<DateTime>(DateTime.now()),
-      ),
-    );
+  Future<void> guardar(String clave, String valor) async {
+    final ahora = DateTime.now();
+
+    await transaction(() async {
+      // 1. Guardar o actualizar la preferencia (UPSERT)
+      await into(attachedDatabase.preferencias).insertOnConflictUpdate(
+        db.PreferenciasCompanion.insert(
+          clave: clave,
+          valor: valor,
+          actualizadoEn: Value<DateTime>(ahora),
+        ),
+      );
+
+      // 2. Registrar/actualizar la marca de sincronización con código 'preferencias'
+      await into(attachedDatabase.sincronizaciones).insertOnConflictUpdate(
+        db.SincronizacionesCompanion.insert(
+          codigo: 'preferencias',
+          ultimaSincronizacion: ahora,
+          registros: const Value<int>(1),
+        ),
+      );
+    });
   }
 
   @override
