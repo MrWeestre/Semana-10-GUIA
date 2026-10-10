@@ -59,4 +59,6 @@ abstract interface class AuditoriaRepository {
 
   /// Contadores de la barra de estado offline-first.
   Future<Map<EstadoAuditoria, int>> conteoPorEstado();
+
+  Future<List<Auditoria>> listarPorRango(DateTime desde, DateTime hasta);
 }

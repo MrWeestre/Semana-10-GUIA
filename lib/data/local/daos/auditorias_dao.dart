@@ -74,6 +74,10 @@ abstract interface class AuditoriasDao {
 
   /// Cuenta de oportunidades por momento, con `GROUP BY`. Reto 5.
   Future<Map<String, ({int total, int cumplidas})>> resumenPorMomento();
+
+   /// Devuelve auditorías activas cuya fecha está dentro del rango inclusivo.
+  /// El filtrado se ejecuta en SQL y aprovecha el índice de `fecha`.
+  Future<List<Auditoria>> listarPorRango(DateTime desde, DateTime hasta);
 }
 
 /// **Implementación de referencia con drift.**
@@ -336,5 +340,19 @@ class DriftAuditoriasDao extends DatabaseAccessor<db.ManosSegurasDb>
       resultado.add(AuditoriaMapper.desdeFilas(fila, oportunidades));
     }
     return resultado;
+  }
+
+  @override
+  Future<List<Auditoria>> listarPorRango(DateTime desde, DateTime hasta) async {
+    final consulta = select(attachedDatabase.auditorias)
+      ..where((t) => t.eliminada.equals(false))
+      ..where((t) => t.fecha.isBiggerOrEqualValue(desde))
+      ..where((t) => t.fecha.isSmallerOrEqualValue(hasta))
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.fecha, mode: OrderingMode.desc)
+      ]);
+
+    final filas = await consulta.get();
+    return _conOportunidades(filas, incluirEliminadas: false);
   }
 }

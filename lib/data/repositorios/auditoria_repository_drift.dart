@@ -233,4 +233,13 @@ class AuditoriaRepositoryDrift implements AuditoriaRepository {
       );
     }
   }
+
+  @override
+  Future<List<Auditoria>> listarPorRango(DateTime desde, DateTime hasta) async {
+    try {
+      return await _dao.listarPorRango(desde, hasta);
+    } catch (error) {
+      throw FalloLocal('No se pudieron consultar las auditorías por rango.', causa: error);
+    }
+  }
 }

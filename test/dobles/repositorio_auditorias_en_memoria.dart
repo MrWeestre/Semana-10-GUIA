@@ -159,4 +159,14 @@ class RepositorioAuditoriasEnMemoria implements AuditoriaRepository {
       throw const FalloLocal('Fallo simulado para las pruebas de interfaz.');
     }
   }
+
+  @override
+  Future<List<Auditoria>> listarPorRango(DateTime desde, DateTime hasta) async {
+    return _auditorias
+        .where((a) => !a.eliminada)
+        .where((a) =>
+            (a.fecha.isAfter(desde) || a.fecha.isAtSameMomentAs(desde)) &&
+            (a.fecha.isBefore(hasta) || a.fecha.isAtSameMomentAs(hasta)))
+        .toList();
+  }
 }
