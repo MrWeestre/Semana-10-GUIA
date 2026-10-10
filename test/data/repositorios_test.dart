@@ -200,6 +200,22 @@ void main() {
       expect(evento, hasLength(1));
       expect(evento.first.id, 'observada');
     });
+    test('listarPorRango devuelve solo auditorias dentro del rango de fechas especificado', () async {
+      await base.insertarEstablecimiento(Establecimiento.ejemplo().aFila());
+      await base.insertarPersonal(Observador.ejemplo().aFila());
+      await base.insertarPersonal(Observado.ejemplo().aFila());
+
+      final fechaBase = DateTime(2026, 10, 1, 10, 0);
+      await repositorio.guardar(_auditoria(id: 'aud-rango-1').copyWith(fecha: fechaBase));
+
+      final resultado = await repositorio.listarPorRango(
+        DateTime(2026, 10, 1, 0, 0),
+        DateTime(2026, 10, 1, 23, 59),
+      );
+
+      expect(resultado.length, 1);
+      expect(resultado.first.id, 'aud-rango-1');
+    });
   });
 
   // -----------------------------------------------------------------
@@ -300,6 +316,21 @@ void main() {
       await prefs.guardar('establecimiento.ultimo', '00006405');
       await prefs.eliminar('establecimiento.ultimo');
       expect(await prefs.leer('establecimiento.ultimo'), isNull);
+    });
+    test('guardar preferencia registra la marca en sincronizaciones dentro de la transaccion', () async {
+      final prefRepo = PreferenciasRepositoryDrift(infra.preferenciasDao);
+      
+      await prefRepo.guardar('tema.modo', 'oscuro');
+      
+      final valor = await prefRepo.leer('tema.modo');
+      expect(valor, 'oscuro');
+
+      final marca = await (base.select(base.sincronizaciones)
+            ..where((t) => t.codigo.equals('preferencias')))
+          .getSingleOrNull();
+      
+      expect(marca, isNotNull);
+      expect(marca?.codigo, 'preferencias');
     });
   });
 
