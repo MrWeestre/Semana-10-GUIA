@@ -1269,6 +1269,17 @@ class $AuditoriasTable extends Auditorias
       'CHECK ("consentimiento_verbal" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _observacionGeneralMeta =
+      const VerificationMeta('observacionGeneral');
+  @override
+  late final GeneratedColumn<String> observacionGeneral =
+      GeneratedColumn<String>(
+        'observacion_general',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _estadoMeta = const VerificationMeta('estado');
   @override
   late final GeneratedColumn<String> estado = GeneratedColumn<String>(
@@ -1345,6 +1356,7 @@ class $AuditoriasTable extends Auditorias
     finObservacion,
     numeroCamasServicio,
     consentimientoVerbal,
+    observacionGeneral,
     estado,
     eliminada,
     sincronizadaEn,
@@ -1478,6 +1490,15 @@ class $AuditoriasTable extends Auditorias
         ),
       );
     }
+    if (data.containsKey('observacion_general')) {
+      context.handle(
+        _observacionGeneralMeta,
+        observacionGeneral.isAcceptableOrUnknown(
+          data['observacion_general']!,
+          _observacionGeneralMeta,
+        ),
+      );
+    }
     if (data.containsKey('estado')) {
       context.handle(
         _estadoMeta,
@@ -1571,6 +1592,10 @@ class $AuditoriasTable extends Auditorias
         DriftSqlType.bool,
         data['${effectivePrefix}consentimiento_verbal'],
       ),
+      observacionGeneral: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}observacion_general'],
+      ),
       estado: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}estado'],
@@ -1603,35 +1628,21 @@ class $AuditoriasTable extends Auditorias
 class Auditoria extends DataClass implements Insertable<Auditoria> {
   final String id;
   final String establecimientoId;
-
-  /// Nombre desnormalizado (trade-off documentado): evita un JOIN en el
-  /// listado offline y conserva el nombre histórico del establecimiento.
   final String establecimientoNombre;
   final String observadorDni;
   final String observadorNombre;
   final String observadoDni;
   final String observadoNombre;
   final DateTime fecha;
-
-  /// Fecha y hora exactas de inicio de la observación.
   final DateTime? inicioObservacion;
-
-  /// Fecha y hora exactas de fin de la observación.
   final DateTime? finObservacion;
-
-  /// Número de camas del servicio observado.
   final int? numeroCamasServicio;
-
-  /// Consentimiento verbal del personal observado para esta observación.
   final bool? consentimientoVerbal;
 
-  /// 'borrador' | 'finalizada' | 'sincronizada'.
+  /// Campo añadido en el esquema v2. Nullable para conservar auditorías v1.
+  final String? observacionGeneral;
   final String estado;
-
-  /// Borrado lógico.
   final bool eliminada;
-
-  /// Marca temporal del último envío exitoso al servidor.
   final DateTime? sincronizadaEn;
   final DateTime creadoEn;
   final DateTime actualizadoEn;
@@ -1648,6 +1659,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     this.finObservacion,
     this.numeroCamasServicio,
     this.consentimientoVerbal,
+    this.observacionGeneral,
     required this.estado,
     required this.eliminada,
     this.sincronizadaEn,
@@ -1676,6 +1688,9 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     }
     if (!nullToAbsent || consentimientoVerbal != null) {
       map['consentimiento_verbal'] = Variable<bool>(consentimientoVerbal);
+    }
+    if (!nullToAbsent || observacionGeneral != null) {
+      map['observacion_general'] = Variable<String>(observacionGeneral);
     }
     map['estado'] = Variable<String>(estado);
     map['eliminada'] = Variable<bool>(eliminada);
@@ -1709,6 +1724,9 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       consentimientoVerbal: consentimientoVerbal == null && nullToAbsent
           ? const Value.absent()
           : Value(consentimientoVerbal),
+      observacionGeneral: observacionGeneral == null && nullToAbsent
+          ? const Value.absent()
+          : Value(observacionGeneral),
       estado: Value(estado),
       eliminada: Value(eliminada),
       sincronizadaEn: sincronizadaEn == null && nullToAbsent
@@ -1745,6 +1763,9 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       consentimientoVerbal: serializer.fromJson<bool?>(
         json['consentimientoVerbal'],
       ),
+      observacionGeneral: serializer.fromJson<String?>(
+        json['observacionGeneral'],
+      ),
       estado: serializer.fromJson<String>(json['estado']),
       eliminada: serializer.fromJson<bool>(json['eliminada']),
       sincronizadaEn: serializer.fromJson<DateTime?>(json['sincronizadaEn']),
@@ -1768,6 +1789,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       'finObservacion': serializer.toJson<DateTime?>(finObservacion),
       'numeroCamasServicio': serializer.toJson<int?>(numeroCamasServicio),
       'consentimientoVerbal': serializer.toJson<bool?>(consentimientoVerbal),
+      'observacionGeneral': serializer.toJson<String?>(observacionGeneral),
       'estado': serializer.toJson<String>(estado),
       'eliminada': serializer.toJson<bool>(eliminada),
       'sincronizadaEn': serializer.toJson<DateTime?>(sincronizadaEn),
@@ -1789,6 +1811,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     Value<DateTime?> finObservacion = const Value.absent(),
     Value<int?> numeroCamasServicio = const Value.absent(),
     Value<bool?> consentimientoVerbal = const Value.absent(),
+    Value<String?> observacionGeneral = const Value.absent(),
     String? estado,
     bool? eliminada,
     Value<DateTime?> sincronizadaEn = const Value.absent(),
@@ -1815,6 +1838,9 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     consentimientoVerbal: consentimientoVerbal.present
         ? consentimientoVerbal.value
         : this.consentimientoVerbal,
+    observacionGeneral: observacionGeneral.present
+        ? observacionGeneral.value
+        : this.observacionGeneral,
     estado: estado ?? this.estado,
     eliminada: eliminada ?? this.eliminada,
     sincronizadaEn: sincronizadaEn.present
@@ -1857,6 +1883,9 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
       consentimientoVerbal: data.consentimientoVerbal.present
           ? data.consentimientoVerbal.value
           : this.consentimientoVerbal,
+      observacionGeneral: data.observacionGeneral.present
+          ? data.observacionGeneral.value
+          : this.observacionGeneral,
       estado: data.estado.present ? data.estado.value : this.estado,
       eliminada: data.eliminada.present ? data.eliminada.value : this.eliminada,
       sincronizadaEn: data.sincronizadaEn.present
@@ -1884,6 +1913,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
           ..write('finObservacion: $finObservacion, ')
           ..write('numeroCamasServicio: $numeroCamasServicio, ')
           ..write('consentimientoVerbal: $consentimientoVerbal, ')
+          ..write('observacionGeneral: $observacionGeneral, ')
           ..write('estado: $estado, ')
           ..write('eliminada: $eliminada, ')
           ..write('sincronizadaEn: $sincronizadaEn, ')
@@ -1907,6 +1937,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
     finObservacion,
     numeroCamasServicio,
     consentimientoVerbal,
+    observacionGeneral,
     estado,
     eliminada,
     sincronizadaEn,
@@ -1929,6 +1960,7 @@ class Auditoria extends DataClass implements Insertable<Auditoria> {
           other.finObservacion == this.finObservacion &&
           other.numeroCamasServicio == this.numeroCamasServicio &&
           other.consentimientoVerbal == this.consentimientoVerbal &&
+          other.observacionGeneral == this.observacionGeneral &&
           other.estado == this.estado &&
           other.eliminada == this.eliminada &&
           other.sincronizadaEn == this.sincronizadaEn &&
@@ -1949,6 +1981,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
   final Value<DateTime?> finObservacion;
   final Value<int?> numeroCamasServicio;
   final Value<bool?> consentimientoVerbal;
+  final Value<String?> observacionGeneral;
   final Value<String> estado;
   final Value<bool> eliminada;
   final Value<DateTime?> sincronizadaEn;
@@ -1968,6 +2001,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     this.finObservacion = const Value.absent(),
     this.numeroCamasServicio = const Value.absent(),
     this.consentimientoVerbal = const Value.absent(),
+    this.observacionGeneral = const Value.absent(),
     this.estado = const Value.absent(),
     this.eliminada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
@@ -1988,6 +2022,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     this.finObservacion = const Value.absent(),
     this.numeroCamasServicio = const Value.absent(),
     this.consentimientoVerbal = const Value.absent(),
+    this.observacionGeneral = const Value.absent(),
     this.estado = const Value.absent(),
     this.eliminada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
@@ -2015,6 +2050,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     Expression<DateTime>? finObservacion,
     Expression<int>? numeroCamasServicio,
     Expression<bool>? consentimientoVerbal,
+    Expression<String>? observacionGeneral,
     Expression<String>? estado,
     Expression<bool>? eliminada,
     Expression<DateTime>? sincronizadaEn,
@@ -2038,6 +2074,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
         'numero_camas_servicio': numeroCamasServicio,
       if (consentimientoVerbal != null)
         'consentimiento_verbal': consentimientoVerbal,
+      if (observacionGeneral != null) 'observacion_general': observacionGeneral,
       if (estado != null) 'estado': estado,
       if (eliminada != null) 'eliminada': eliminada,
       if (sincronizadaEn != null) 'sincronizada_en': sincronizadaEn,
@@ -2060,6 +2097,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     Value<DateTime?>? finObservacion,
     Value<int?>? numeroCamasServicio,
     Value<bool?>? consentimientoVerbal,
+    Value<String?>? observacionGeneral,
     Value<String>? estado,
     Value<bool>? eliminada,
     Value<DateTime?>? sincronizadaEn,
@@ -2081,6 +2119,7 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
       finObservacion: finObservacion ?? this.finObservacion,
       numeroCamasServicio: numeroCamasServicio ?? this.numeroCamasServicio,
       consentimientoVerbal: consentimientoVerbal ?? this.consentimientoVerbal,
+      observacionGeneral: observacionGeneral ?? this.observacionGeneral,
       estado: estado ?? this.estado,
       eliminada: eliminada ?? this.eliminada,
       sincronizadaEn: sincronizadaEn ?? this.sincronizadaEn,
@@ -2131,6 +2170,9 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
     if (consentimientoVerbal.present) {
       map['consentimiento_verbal'] = Variable<bool>(consentimientoVerbal.value);
     }
+    if (observacionGeneral.present) {
+      map['observacion_general'] = Variable<String>(observacionGeneral.value);
+    }
     if (estado.present) {
       map['estado'] = Variable<String>(estado.value);
     }
@@ -2167,12 +2209,444 @@ class AuditoriasCompanion extends UpdateCompanion<Auditoria> {
           ..write('finObservacion: $finObservacion, ')
           ..write('numeroCamasServicio: $numeroCamasServicio, ')
           ..write('consentimientoVerbal: $consentimientoVerbal, ')
+          ..write('observacionGeneral: $observacionGeneral, ')
           ..write('estado: $estado, ')
           ..write('eliminada: $eliminada, ')
           ..write('sincronizadaEn: $sincronizadaEn, ')
           ..write('creadoEn: $creadoEn, ')
           ..write('actualizadoEn: $actualizadoEn, ')
           ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AuditoriasHistorialTable extends AuditoriasHistorial
+    with TableInfo<$AuditoriasHistorialTable, AuditoriasHistorialData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AuditoriasHistorialTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _auditoriaIdMeta = const VerificationMeta(
+    'auditoriaId',
+  );
+  @override
+  late final GeneratedColumn<String> auditoriaId = GeneratedColumn<String>(
+    'auditoria_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES auditorias (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _fechaCambioMeta = const VerificationMeta(
+    'fechaCambio',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fechaCambio = GeneratedColumn<DateTime>(
+    'fecha_cambio',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _campoMeta = const VerificationMeta('campo');
+  @override
+  late final GeneratedColumn<String> campo = GeneratedColumn<String>(
+    'campo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valorAnteriorMeta = const VerificationMeta(
+    'valorAnterior',
+  );
+  @override
+  late final GeneratedColumn<String> valorAnterior = GeneratedColumn<String>(
+    'valor_anterior',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _valorNuevoMeta = const VerificationMeta(
+    'valorNuevo',
+  );
+  @override
+  late final GeneratedColumn<String> valorNuevo = GeneratedColumn<String>(
+    'valor_nuevo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    auditoriaId,
+    fechaCambio,
+    campo,
+    valorAnterior,
+    valorNuevo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'auditorias_historial';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AuditoriasHistorialData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('auditoria_id')) {
+      context.handle(
+        _auditoriaIdMeta,
+        auditoriaId.isAcceptableOrUnknown(
+          data['auditoria_id']!,
+          _auditoriaIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_auditoriaIdMeta);
+    }
+    if (data.containsKey('fecha_cambio')) {
+      context.handle(
+        _fechaCambioMeta,
+        fechaCambio.isAcceptableOrUnknown(
+          data['fecha_cambio']!,
+          _fechaCambioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('campo')) {
+      context.handle(
+        _campoMeta,
+        campo.isAcceptableOrUnknown(data['campo']!, _campoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_campoMeta);
+    }
+    if (data.containsKey('valor_anterior')) {
+      context.handle(
+        _valorAnteriorMeta,
+        valorAnterior.isAcceptableOrUnknown(
+          data['valor_anterior']!,
+          _valorAnteriorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('valor_nuevo')) {
+      context.handle(
+        _valorNuevoMeta,
+        valorNuevo.isAcceptableOrUnknown(data['valor_nuevo']!, _valorNuevoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AuditoriasHistorialData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AuditoriasHistorialData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      auditoriaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}auditoria_id'],
+      )!,
+      fechaCambio: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fecha_cambio'],
+      )!,
+      campo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}campo'],
+      )!,
+      valorAnterior: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}valor_anterior'],
+      ),
+      valorNuevo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}valor_nuevo'],
+      ),
+    );
+  }
+
+  @override
+  $AuditoriasHistorialTable createAlias(String alias) {
+    return $AuditoriasHistorialTable(attachedDatabase, alias);
+  }
+}
+
+class AuditoriasHistorialData extends DataClass
+    implements Insertable<AuditoriasHistorialData> {
+  final int id;
+  final String auditoriaId;
+  final DateTime fechaCambio;
+  final String campo;
+  final String? valorAnterior;
+  final String? valorNuevo;
+  const AuditoriasHistorialData({
+    required this.id,
+    required this.auditoriaId,
+    required this.fechaCambio,
+    required this.campo,
+    this.valorAnterior,
+    this.valorNuevo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['auditoria_id'] = Variable<String>(auditoriaId);
+    map['fecha_cambio'] = Variable<DateTime>(fechaCambio);
+    map['campo'] = Variable<String>(campo);
+    if (!nullToAbsent || valorAnterior != null) {
+      map['valor_anterior'] = Variable<String>(valorAnterior);
+    }
+    if (!nullToAbsent || valorNuevo != null) {
+      map['valor_nuevo'] = Variable<String>(valorNuevo);
+    }
+    return map;
+  }
+
+  AuditoriasHistorialCompanion toCompanion(bool nullToAbsent) {
+    return AuditoriasHistorialCompanion(
+      id: Value(id),
+      auditoriaId: Value(auditoriaId),
+      fechaCambio: Value(fechaCambio),
+      campo: Value(campo),
+      valorAnterior: valorAnterior == null && nullToAbsent
+          ? const Value.absent()
+          : Value(valorAnterior),
+      valorNuevo: valorNuevo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(valorNuevo),
+    );
+  }
+
+  factory AuditoriasHistorialData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AuditoriasHistorialData(
+      id: serializer.fromJson<int>(json['id']),
+      auditoriaId: serializer.fromJson<String>(json['auditoriaId']),
+      fechaCambio: serializer.fromJson<DateTime>(json['fechaCambio']),
+      campo: serializer.fromJson<String>(json['campo']),
+      valorAnterior: serializer.fromJson<String?>(json['valorAnterior']),
+      valorNuevo: serializer.fromJson<String?>(json['valorNuevo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'auditoriaId': serializer.toJson<String>(auditoriaId),
+      'fechaCambio': serializer.toJson<DateTime>(fechaCambio),
+      'campo': serializer.toJson<String>(campo),
+      'valorAnterior': serializer.toJson<String?>(valorAnterior),
+      'valorNuevo': serializer.toJson<String?>(valorNuevo),
+    };
+  }
+
+  AuditoriasHistorialData copyWith({
+    int? id,
+    String? auditoriaId,
+    DateTime? fechaCambio,
+    String? campo,
+    Value<String?> valorAnterior = const Value.absent(),
+    Value<String?> valorNuevo = const Value.absent(),
+  }) => AuditoriasHistorialData(
+    id: id ?? this.id,
+    auditoriaId: auditoriaId ?? this.auditoriaId,
+    fechaCambio: fechaCambio ?? this.fechaCambio,
+    campo: campo ?? this.campo,
+    valorAnterior: valorAnterior.present
+        ? valorAnterior.value
+        : this.valorAnterior,
+    valorNuevo: valorNuevo.present ? valorNuevo.value : this.valorNuevo,
+  );
+  AuditoriasHistorialData copyWithCompanion(AuditoriasHistorialCompanion data) {
+    return AuditoriasHistorialData(
+      id: data.id.present ? data.id.value : this.id,
+      auditoriaId: data.auditoriaId.present
+          ? data.auditoriaId.value
+          : this.auditoriaId,
+      fechaCambio: data.fechaCambio.present
+          ? data.fechaCambio.value
+          : this.fechaCambio,
+      campo: data.campo.present ? data.campo.value : this.campo,
+      valorAnterior: data.valorAnterior.present
+          ? data.valorAnterior.value
+          : this.valorAnterior,
+      valorNuevo: data.valorNuevo.present
+          ? data.valorNuevo.value
+          : this.valorNuevo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuditoriasHistorialData(')
+          ..write('id: $id, ')
+          ..write('auditoriaId: $auditoriaId, ')
+          ..write('fechaCambio: $fechaCambio, ')
+          ..write('campo: $campo, ')
+          ..write('valorAnterior: $valorAnterior, ')
+          ..write('valorNuevo: $valorNuevo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    auditoriaId,
+    fechaCambio,
+    campo,
+    valorAnterior,
+    valorNuevo,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AuditoriasHistorialData &&
+          other.id == this.id &&
+          other.auditoriaId == this.auditoriaId &&
+          other.fechaCambio == this.fechaCambio &&
+          other.campo == this.campo &&
+          other.valorAnterior == this.valorAnterior &&
+          other.valorNuevo == this.valorNuevo);
+}
+
+class AuditoriasHistorialCompanion
+    extends UpdateCompanion<AuditoriasHistorialData> {
+  final Value<int> id;
+  final Value<String> auditoriaId;
+  final Value<DateTime> fechaCambio;
+  final Value<String> campo;
+  final Value<String?> valorAnterior;
+  final Value<String?> valorNuevo;
+  const AuditoriasHistorialCompanion({
+    this.id = const Value.absent(),
+    this.auditoriaId = const Value.absent(),
+    this.fechaCambio = const Value.absent(),
+    this.campo = const Value.absent(),
+    this.valorAnterior = const Value.absent(),
+    this.valorNuevo = const Value.absent(),
+  });
+  AuditoriasHistorialCompanion.insert({
+    this.id = const Value.absent(),
+    required String auditoriaId,
+    this.fechaCambio = const Value.absent(),
+    required String campo,
+    this.valorAnterior = const Value.absent(),
+    this.valorNuevo = const Value.absent(),
+  }) : auditoriaId = Value(auditoriaId),
+       campo = Value(campo);
+  static Insertable<AuditoriasHistorialData> custom({
+    Expression<int>? id,
+    Expression<String>? auditoriaId,
+    Expression<DateTime>? fechaCambio,
+    Expression<String>? campo,
+    Expression<String>? valorAnterior,
+    Expression<String>? valorNuevo,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (auditoriaId != null) 'auditoria_id': auditoriaId,
+      if (fechaCambio != null) 'fecha_cambio': fechaCambio,
+      if (campo != null) 'campo': campo,
+      if (valorAnterior != null) 'valor_anterior': valorAnterior,
+      if (valorNuevo != null) 'valor_nuevo': valorNuevo,
+    });
+  }
+
+  AuditoriasHistorialCompanion copyWith({
+    Value<int>? id,
+    Value<String>? auditoriaId,
+    Value<DateTime>? fechaCambio,
+    Value<String>? campo,
+    Value<String?>? valorAnterior,
+    Value<String?>? valorNuevo,
+  }) {
+    return AuditoriasHistorialCompanion(
+      id: id ?? this.id,
+      auditoriaId: auditoriaId ?? this.auditoriaId,
+      fechaCambio: fechaCambio ?? this.fechaCambio,
+      campo: campo ?? this.campo,
+      valorAnterior: valorAnterior ?? this.valorAnterior,
+      valorNuevo: valorNuevo ?? this.valorNuevo,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (auditoriaId.present) {
+      map['auditoria_id'] = Variable<String>(auditoriaId.value);
+    }
+    if (fechaCambio.present) {
+      map['fecha_cambio'] = Variable<DateTime>(fechaCambio.value);
+    }
+    if (campo.present) {
+      map['campo'] = Variable<String>(campo.value);
+    }
+    if (valorAnterior.present) {
+      map['valor_anterior'] = Variable<String>(valorAnterior.value);
+    }
+    if (valorNuevo.present) {
+      map['valor_nuevo'] = Variable<String>(valorNuevo.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuditoriasHistorialCompanion(')
+          ..write('id: $id, ')
+          ..write('auditoriaId: $auditoriaId, ')
+          ..write('fechaCambio: $fechaCambio, ')
+          ..write('campo: $campo, ')
+          ..write('valorAnterior: $valorAnterior, ')
+          ..write('valorNuevo: $valorNuevo')
           ..write(')'))
         .toString();
   }
@@ -2253,6 +2727,17 @@ class $OportunidadesTable extends Oportunidades
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _duracionSegundosMeta = const VerificationMeta(
+    'duracionSegundos',
+  );
+  @override
+  late final GeneratedColumn<int> duracionSegundos = GeneratedColumn<int>(
+    'duracion_segundos',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _registradoEnMeta = const VerificationMeta(
     'registradoEn',
   );
@@ -2273,6 +2758,7 @@ class $OportunidadesTable extends Oportunidades
     momentoClave,
     accionClave,
     observacion,
+    duracionSegundos,
     registradoEn,
   ];
   @override
@@ -2340,6 +2826,15 @@ class $OportunidadesTable extends Oportunidades
         ),
       );
     }
+    if (data.containsKey('duracion_segundos')) {
+      context.handle(
+        _duracionSegundosMeta,
+        duracionSegundos.isAcceptableOrUnknown(
+          data['duracion_segundos']!,
+          _duracionSegundosMeta,
+        ),
+      );
+    }
     if (data.containsKey('registrado_en')) {
       context.handle(
         _registradoEnMeta,
@@ -2386,6 +2881,10 @@ class $OportunidadesTable extends Oportunidades
         DriftSqlType.string,
         data['${effectivePrefix}observacion'],
       ),
+      duracionSegundos: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duracion_segundos'],
+      ),
       registradoEn: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}registrado_en'],
@@ -2402,18 +2901,13 @@ class $OportunidadesTable extends Oportunidades
 class Oportunidade extends DataClass implements Insertable<Oportunidade> {
   final int id;
   final String auditoriaId;
-
-  /// Número correlativo de la oportunidad dentro de la auditoría (1..n).
   final int numero;
-
-  /// Clave textual del enum `Momento` ('antes_paciente', 'despues_entorno'…).
   final String momentoClave;
-
-  /// Clave textual del enum `Accion` ('guantes', 'lavado', 'omision'…).
   final String accionClave;
-
-  /// Nota libre opcional del observador.
   final String? observacion;
+
+  /// Campo nullable añadido en el esquema v2.
+  final int? duracionSegundos;
   final DateTime registradoEn;
   const Oportunidade({
     required this.id,
@@ -2422,6 +2916,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
     required this.momentoClave,
     required this.accionClave,
     this.observacion,
+    this.duracionSegundos,
     required this.registradoEn,
   });
   @override
@@ -2434,6 +2929,9 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
     map['accion_clave'] = Variable<String>(accionClave);
     if (!nullToAbsent || observacion != null) {
       map['observacion'] = Variable<String>(observacion);
+    }
+    if (!nullToAbsent || duracionSegundos != null) {
+      map['duracion_segundos'] = Variable<int>(duracionSegundos);
     }
     map['registrado_en'] = Variable<DateTime>(registradoEn);
     return map;
@@ -2449,6 +2947,9 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
       observacion: observacion == null && nullToAbsent
           ? const Value.absent()
           : Value(observacion),
+      duracionSegundos: duracionSegundos == null && nullToAbsent
+          ? const Value.absent()
+          : Value(duracionSegundos),
       registradoEn: Value(registradoEn),
     );
   }
@@ -2465,6 +2966,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
       momentoClave: serializer.fromJson<String>(json['momentoClave']),
       accionClave: serializer.fromJson<String>(json['accionClave']),
       observacion: serializer.fromJson<String?>(json['observacion']),
+      duracionSegundos: serializer.fromJson<int?>(json['duracionSegundos']),
       registradoEn: serializer.fromJson<DateTime>(json['registradoEn']),
     );
   }
@@ -2478,6 +2980,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
       'momentoClave': serializer.toJson<String>(momentoClave),
       'accionClave': serializer.toJson<String>(accionClave),
       'observacion': serializer.toJson<String?>(observacion),
+      'duracionSegundos': serializer.toJson<int?>(duracionSegundos),
       'registradoEn': serializer.toJson<DateTime>(registradoEn),
     };
   }
@@ -2489,6 +2992,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
     String? momentoClave,
     String? accionClave,
     Value<String?> observacion = const Value.absent(),
+    Value<int?> duracionSegundos = const Value.absent(),
     DateTime? registradoEn,
   }) => Oportunidade(
     id: id ?? this.id,
@@ -2497,6 +3001,9 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
     momentoClave: momentoClave ?? this.momentoClave,
     accionClave: accionClave ?? this.accionClave,
     observacion: observacion.present ? observacion.value : this.observacion,
+    duracionSegundos: duracionSegundos.present
+        ? duracionSegundos.value
+        : this.duracionSegundos,
     registradoEn: registradoEn ?? this.registradoEn,
   );
   Oportunidade copyWithCompanion(OportunidadesCompanion data) {
@@ -2515,6 +3022,9 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
       observacion: data.observacion.present
           ? data.observacion.value
           : this.observacion,
+      duracionSegundos: data.duracionSegundos.present
+          ? data.duracionSegundos.value
+          : this.duracionSegundos,
       registradoEn: data.registradoEn.present
           ? data.registradoEn.value
           : this.registradoEn,
@@ -2530,6 +3040,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
           ..write('momentoClave: $momentoClave, ')
           ..write('accionClave: $accionClave, ')
           ..write('observacion: $observacion, ')
+          ..write('duracionSegundos: $duracionSegundos, ')
           ..write('registradoEn: $registradoEn')
           ..write(')'))
         .toString();
@@ -2543,6 +3054,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
     momentoClave,
     accionClave,
     observacion,
+    duracionSegundos,
     registradoEn,
   );
   @override
@@ -2555,6 +3067,7 @@ class Oportunidade extends DataClass implements Insertable<Oportunidade> {
           other.momentoClave == this.momentoClave &&
           other.accionClave == this.accionClave &&
           other.observacion == this.observacion &&
+          other.duracionSegundos == this.duracionSegundos &&
           other.registradoEn == this.registradoEn);
 }
 
@@ -2565,6 +3078,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
   final Value<String> momentoClave;
   final Value<String> accionClave;
   final Value<String?> observacion;
+  final Value<int?> duracionSegundos;
   final Value<DateTime> registradoEn;
   const OportunidadesCompanion({
     this.id = const Value.absent(),
@@ -2573,6 +3087,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
     this.momentoClave = const Value.absent(),
     this.accionClave = const Value.absent(),
     this.observacion = const Value.absent(),
+    this.duracionSegundos = const Value.absent(),
     this.registradoEn = const Value.absent(),
   });
   OportunidadesCompanion.insert({
@@ -2582,6 +3097,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
     required String momentoClave,
     required String accionClave,
     this.observacion = const Value.absent(),
+    this.duracionSegundos = const Value.absent(),
     this.registradoEn = const Value.absent(),
   }) : auditoriaId = Value(auditoriaId),
        numero = Value(numero),
@@ -2594,6 +3110,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
     Expression<String>? momentoClave,
     Expression<String>? accionClave,
     Expression<String>? observacion,
+    Expression<int>? duracionSegundos,
     Expression<DateTime>? registradoEn,
   }) {
     return RawValuesInsertable({
@@ -2603,6 +3120,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
       if (momentoClave != null) 'momento_clave': momentoClave,
       if (accionClave != null) 'accion_clave': accionClave,
       if (observacion != null) 'observacion': observacion,
+      if (duracionSegundos != null) 'duracion_segundos': duracionSegundos,
       if (registradoEn != null) 'registrado_en': registradoEn,
     });
   }
@@ -2614,6 +3132,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
     Value<String>? momentoClave,
     Value<String>? accionClave,
     Value<String?>? observacion,
+    Value<int?>? duracionSegundos,
     Value<DateTime>? registradoEn,
   }) {
     return OportunidadesCompanion(
@@ -2623,6 +3142,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
       momentoClave: momentoClave ?? this.momentoClave,
       accionClave: accionClave ?? this.accionClave,
       observacion: observacion ?? this.observacion,
+      duracionSegundos: duracionSegundos ?? this.duracionSegundos,
       registradoEn: registradoEn ?? this.registradoEn,
     );
   }
@@ -2648,6 +3168,9 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
     if (observacion.present) {
       map['observacion'] = Variable<String>(observacion.value);
     }
+    if (duracionSegundos.present) {
+      map['duracion_segundos'] = Variable<int>(duracionSegundos.value);
+    }
     if (registradoEn.present) {
       map['registrado_en'] = Variable<DateTime>(registradoEn.value);
     }
@@ -2663,6 +3186,7 @@ class OportunidadesCompanion extends UpdateCompanion<Oportunidade> {
           ..write('momentoClave: $momentoClave, ')
           ..write('accionClave: $accionClave, ')
           ..write('observacion: $observacion, ')
+          ..write('duracionSegundos: $duracionSegundos, ')
           ..write('registradoEn: $registradoEn')
           ..write(')'))
         .toString();
@@ -3180,11 +3704,24 @@ class $SincronizacionesTable extends Sincronizaciones
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _intentosFallidosConsecutivosMeta =
+      const VerificationMeta('intentosFallidosConsecutivos');
+  @override
+  late final GeneratedColumn<int> intentosFallidosConsecutivos =
+      GeneratedColumn<int>(
+        'intentos_fallidos_consecutivos',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     codigo,
     ultimaSincronizacion,
     registros,
+    intentosFallidosConsecutivos,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3223,6 +3760,15 @@ class $SincronizacionesTable extends Sincronizaciones
         registros.isAcceptableOrUnknown(data['registros']!, _registrosMeta),
       );
     }
+    if (data.containsKey('intentos_fallidos_consecutivos')) {
+      context.handle(
+        _intentosFallidosConsecutivosMeta,
+        intentosFallidosConsecutivos.isAcceptableOrUnknown(
+          data['intentos_fallidos_consecutivos']!,
+          _intentosFallidosConsecutivosMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3244,6 +3790,10 @@ class $SincronizacionesTable extends Sincronizaciones
         DriftSqlType.int,
         data['${effectivePrefix}registros'],
       )!,
+      intentosFallidosConsecutivos: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}intentos_fallidos_consecutivos'],
+      )!,
     );
   }
 
@@ -3260,10 +3810,15 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
 
   /// Cantidad de registros escritos en la última descarga exitosa.
   final int registros;
+
+  /// Racha de intentos fallidos consecutivos para este recurso.
+  /// Vuelve a cero al completar una descarga exitosa.
+  final int intentosFallidosConsecutivos;
   const Sincronizacione({
     required this.codigo,
     required this.ultimaSincronizacion,
     required this.registros,
+    required this.intentosFallidosConsecutivos,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3271,6 +3826,9 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
     map['codigo'] = Variable<String>(codigo);
     map['ultima_sincronizacion'] = Variable<DateTime>(ultimaSincronizacion);
     map['registros'] = Variable<int>(registros);
+    map['intentos_fallidos_consecutivos'] = Variable<int>(
+      intentosFallidosConsecutivos,
+    );
     return map;
   }
 
@@ -3279,6 +3837,7 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
       codigo: Value(codigo),
       ultimaSincronizacion: Value(ultimaSincronizacion),
       registros: Value(registros),
+      intentosFallidosConsecutivos: Value(intentosFallidosConsecutivos),
     );
   }
 
@@ -3293,6 +3852,9 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
         json['ultimaSincronizacion'],
       ),
       registros: serializer.fromJson<int>(json['registros']),
+      intentosFallidosConsecutivos: serializer.fromJson<int>(
+        json['intentosFallidosConsecutivos'],
+      ),
     );
   }
   @override
@@ -3302,6 +3864,9 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
       'codigo': serializer.toJson<String>(codigo),
       'ultimaSincronizacion': serializer.toJson<DateTime>(ultimaSincronizacion),
       'registros': serializer.toJson<int>(registros),
+      'intentosFallidosConsecutivos': serializer.toJson<int>(
+        intentosFallidosConsecutivos,
+      ),
     };
   }
 
@@ -3309,10 +3874,13 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
     String? codigo,
     DateTime? ultimaSincronizacion,
     int? registros,
+    int? intentosFallidosConsecutivos,
   }) => Sincronizacione(
     codigo: codigo ?? this.codigo,
     ultimaSincronizacion: ultimaSincronizacion ?? this.ultimaSincronizacion,
     registros: registros ?? this.registros,
+    intentosFallidosConsecutivos:
+        intentosFallidosConsecutivos ?? this.intentosFallidosConsecutivos,
   );
   Sincronizacione copyWithCompanion(SincronizacionesCompanion data) {
     return Sincronizacione(
@@ -3321,6 +3889,9 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
           ? data.ultimaSincronizacion.value
           : this.ultimaSincronizacion,
       registros: data.registros.present ? data.registros.value : this.registros,
+      intentosFallidosConsecutivos: data.intentosFallidosConsecutivos.present
+          ? data.intentosFallidosConsecutivos.value
+          : this.intentosFallidosConsecutivos,
     );
   }
 
@@ -3329,37 +3900,48 @@ class Sincronizacione extends DataClass implements Insertable<Sincronizacione> {
     return (StringBuffer('Sincronizacione(')
           ..write('codigo: $codigo, ')
           ..write('ultimaSincronizacion: $ultimaSincronizacion, ')
-          ..write('registros: $registros')
+          ..write('registros: $registros, ')
+          ..write('intentosFallidosConsecutivos: $intentosFallidosConsecutivos')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(codigo, ultimaSincronizacion, registros);
+  int get hashCode => Object.hash(
+    codigo,
+    ultimaSincronizacion,
+    registros,
+    intentosFallidosConsecutivos,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Sincronizacione &&
           other.codigo == this.codigo &&
           other.ultimaSincronizacion == this.ultimaSincronizacion &&
-          other.registros == this.registros);
+          other.registros == this.registros &&
+          other.intentosFallidosConsecutivos ==
+              this.intentosFallidosConsecutivos);
 }
 
 class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
   final Value<String> codigo;
   final Value<DateTime> ultimaSincronizacion;
   final Value<int> registros;
+  final Value<int> intentosFallidosConsecutivos;
   final Value<int> rowid;
   const SincronizacionesCompanion({
     this.codigo = const Value.absent(),
     this.ultimaSincronizacion = const Value.absent(),
     this.registros = const Value.absent(),
+    this.intentosFallidosConsecutivos = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SincronizacionesCompanion.insert({
     required String codigo,
     required DateTime ultimaSincronizacion,
     this.registros = const Value.absent(),
+    this.intentosFallidosConsecutivos = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : codigo = Value(codigo),
        ultimaSincronizacion = Value(ultimaSincronizacion);
@@ -3367,6 +3949,7 @@ class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
     Expression<String>? codigo,
     Expression<DateTime>? ultimaSincronizacion,
     Expression<int>? registros,
+    Expression<int>? intentosFallidosConsecutivos,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3374,6 +3957,8 @@ class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
       if (ultimaSincronizacion != null)
         'ultima_sincronizacion': ultimaSincronizacion,
       if (registros != null) 'registros': registros,
+      if (intentosFallidosConsecutivos != null)
+        'intentos_fallidos_consecutivos': intentosFallidosConsecutivos,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3382,12 +3967,15 @@ class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
     Value<String>? codigo,
     Value<DateTime>? ultimaSincronizacion,
     Value<int>? registros,
+    Value<int>? intentosFallidosConsecutivos,
     Value<int>? rowid,
   }) {
     return SincronizacionesCompanion(
       codigo: codigo ?? this.codigo,
       ultimaSincronizacion: ultimaSincronizacion ?? this.ultimaSincronizacion,
       registros: registros ?? this.registros,
+      intentosFallidosConsecutivos:
+          intentosFallidosConsecutivos ?? this.intentosFallidosConsecutivos,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3406,6 +3994,11 @@ class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
     if (registros.present) {
       map['registros'] = Variable<int>(registros.value);
     }
+    if (intentosFallidosConsecutivos.present) {
+      map['intentos_fallidos_consecutivos'] = Variable<int>(
+        intentosFallidosConsecutivos.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3418,6 +4011,9 @@ class SincronizacionesCompanion extends UpdateCompanion<Sincronizacione> {
           ..write('codigo: $codigo, ')
           ..write('ultimaSincronizacion: $ultimaSincronizacion, ')
           ..write('registros: $registros, ')
+          ..write(
+            'intentosFallidosConsecutivos: $intentosFallidosConsecutivos, ',
+          )
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3700,6 +4296,8 @@ abstract class _$ManosSegurasDb extends GeneratedDatabase {
   );
   late final $PersonalTable personal = $PersonalTable(this);
   late final $AuditoriasTable auditorias = $AuditoriasTable(this);
+  late final $AuditoriasHistorialTable auditoriasHistorial =
+      $AuditoriasHistorialTable(this);
   late final $OportunidadesTable oportunidades = $OportunidadesTable(this);
   late final $IndicadoresCacheTable indicadoresCache = $IndicadoresCacheTable(
     this,
@@ -3708,6 +4306,14 @@ abstract class _$ManosSegurasDb extends GeneratedDatabase {
     this,
   );
   late final $PreferenciasTable preferencias = $PreferenciasTable(this);
+  late final Index idxAuditoriasEstadoFecha = Index(
+    'idx_auditorias_estado_fecha',
+    'CREATE INDEX idx_auditorias_estado_fecha ON auditorias (estado, fecha)',
+  );
+  late final Index idxHistorialAuditoriaFecha = Index(
+    'idx_historial_auditoria_fecha',
+    'CREATE INDEX idx_historial_auditoria_fecha ON auditorias_historial (auditoria_id, fecha_cambio)',
+  );
   late final Index idxOportunidadesAuditoria = Index(
     'idx_oportunidades_auditoria',
     'CREATE INDEX idx_oportunidades_auditoria ON oportunidades (auditoria_id)',
@@ -3720,14 +4326,24 @@ abstract class _$ManosSegurasDb extends GeneratedDatabase {
     establecimientos,
     personal,
     auditorias,
+    auditoriasHistorial,
     oportunidades,
     indicadoresCache,
     sincronizaciones,
     preferencias,
+    idxAuditoriasEstadoFecha,
+    idxHistorialAuditoriaFecha,
     idxOportunidadesAuditoria,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'auditorias',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('auditorias_historial', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'auditorias',
