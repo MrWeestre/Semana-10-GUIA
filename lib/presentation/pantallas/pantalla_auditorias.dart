@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../domain/entidades/auditoria.dart';
 import '../../domain/repositorios/auditoria_repository.dart';
 import '../di.dart';
+import '../widgets/app_layout.dart';
 import '../widgets/estados_vista.dart';
 import '../widgets/tarjetas.dart';
 

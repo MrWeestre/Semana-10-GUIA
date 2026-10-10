@@ -132,14 +132,14 @@ class _PantallaEditarAuditoriaState extends State<PantallaEditarAuditoria> {
             Text('Oportunidad ${item.original.numero}', style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             DropdownButtonFormField<Momento>(
-              value: item.momento,
+              initialValue: item.momento,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Momento'),
               items: Momento.values.map((Momento m) => DropdownMenuItem<Momento>(value: m, child: Text(m.etiqueta, overflow: TextOverflow.ellipsis))).toList(),
               onChanged: (Momento? value) => setState(() { if (value != null) item.momento = value; }),
             ),
             DropdownButtonFormField<Accion>(
-              value: item.accion,
+              initialValue: item.accion,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Acción observada'),
               items: Accion.values.map((Accion a) => DropdownMenuItem<Accion>(value: a, child: Text(a.etiqueta))).toList(),
