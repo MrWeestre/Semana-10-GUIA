@@ -192,7 +192,7 @@ void main() {
           repositorio.observarAuditorias();
 
       final Future<List<Auditoria>> segundoEvento =
-          flujo.skip(1).first; // el primero es la lista vacía inicial
+          flujo.firstWhere((List<Auditoria> l) => l.isNotEmpty).timeout(const Duration(seconds: 10)); // el primero es la lista vacía inicial
 
       await repositorio.guardar(_auditoria(id: 'observada'));
 

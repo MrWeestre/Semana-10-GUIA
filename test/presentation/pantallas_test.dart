@@ -103,7 +103,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Resumen local (calculado en SQL)'), findsOneWidget);
+    expect(find.text('Resumen de esta página'), findsOneWidget);
     expect(find.text('Hospital Regional del Cusco'), findsOneWidget);
     expect(find.text('Detalle por auditoría'), findsOneWidget);
   });
